@@ -10,6 +10,8 @@
  *   - null    (the empty word / no value)
  */
 
+import type { Token } from './lexer'
+
 export type LogoValue = number | string | boolean | LogoList | LogoArray | null
 
 /** A Logo list is an immutable sequence of Logo values. */
@@ -81,7 +83,8 @@ export class LogoArray {
 export interface LogoProc {
   name: string
   params: string[]
-  body: unknown[] // parsed AST instruction nodes
+  /** Raw body tokens, parsed lazily at call time so forward references resolve. */
+  bodyTokens: Token[]
   isMacro: boolean
   text?: string // original source text (for PO / TEXT)
 }
