@@ -33,6 +33,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
 }
 
 /* Toolbar */
@@ -327,4 +328,84 @@ body {
   border-radius: 4px;
   font-size: 12px;
   overflow-x: auto;
+}
+
+/* ---- Responsive: tablets (portrait iPads) ---- */
+@media (max-width: 1024px) {
+  .editor-panel {
+    width: 40%;
+    min-width: 280px;
+  }
+  .bottom {
+    height: 160px;
+  }
+  .toolbar {
+    padding: 8px 12px;
+  }
+  .toolbar-buttons button {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}
+
+/* ---- Responsive: phones ---- */
+@media (max-width: 640px) {
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  .toolbar-title {
+    font-size: 14px;
+  }
+  .toolbar-buttons {
+    width: 100%;
+    justify-content: space-between;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .toolbar-buttons button {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    padding: 10px 6px;
+    font-size: 13px;
+  }
+
+  /* Stack editor over canvas; canvas keeps the upper half. */
+  .main {
+    flex-direction: column;
+  }
+  .editor-panel {
+    width: 100%;
+    min-width: 0;
+    height: 45%;
+    border-right: none;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .canvas-panel {
+    flex: 1;
+    height: 55%;
+    min-height: 0;
+  }
+
+  .bottom {
+    height: 140px;
+  }
+  .repl-input {
+    font-size: 16px; /* prevent iOS focus auto-zoom */
+  }
+  .status-bar {
+    gap: 12px;
+    padding: 4px 10px;
+    font-size: 11px;
+    flex-wrap: wrap;
+  }
+}
+
+/* Prevent iOS Safari from auto-zooming Monaco's hidden textarea on focus. */
+@media (max-width: 640px) {
+  .monaco-editor textarea {
+    font-size: 16px;
+  }
 }
