@@ -11,6 +11,7 @@ function makeTurtle() {
     lineJoin: '',
     font: '',
     fillRect: vi.fn(),
+    drawImage: vi.fn(),
     beginPath: vi.fn(),
     moveTo: vi.fn(),
     lineTo: vi.fn(),

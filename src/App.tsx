@@ -29,6 +29,11 @@ export default function App() {
   }, [])
 
   const onCanvasReady = useCallback((canvas: HTMLCanvasElement) => {
+    // Same canvas re-reported (e.g. a real window resize): just resize in place.
+    if (turtleRef.current && canvasRef.current === canvas) {
+      turtleRef.current.setSize(canvas.width, canvas.height)
+      return
+    }
     canvasRef.current = canvas
     const t = new Turtle(canvas, {
       onStateChange: (state) => setTurtleState({ ...state }),

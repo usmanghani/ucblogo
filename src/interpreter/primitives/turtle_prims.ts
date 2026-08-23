@@ -56,10 +56,26 @@ export function registerTurtle(ev: Evaluator, ctx: EvalContext): void {
   reg('PU', 0, 0, () => { turtle(ctx).penUp(); return '' })
   reg('PENDOWN', 0, 0, () => { turtle(ctx).penDown(); return '' })
   reg('PD', 0, 0, () => { turtle(ctx).penDown(); return '' })
-  reg('SETPENCOLOR', 1, 1, (args) => { turtle(ctx).setPenColor(num(args[0], 'SETPENCOLOR')); return '' })
-  reg('SETPC', 1, 1, (args) => { turtle(ctx).setPenColor(num(args[0], 'SETPC')); return '' })
-  reg('SETBACKGROUND', 1, 1, (args) => { turtle(ctx).setBackground(num(args[0], 'SETBACKGROUND')); return '' })
-  reg('SETBG', 1, 1, (args) => { turtle(ctx).setBackground(num(args[0], 'SETBG')); return '' })
+  reg('SETPENCOLOR', 0, 1, (args) => {
+    const v = args[0]
+    if (v === undefined || !isNumber(v)) { turtle(ctx).cyclePenColor(); return '' }
+    turtle(ctx).setPenColor(num(v, 'SETPENCOLOR')); return ''
+  })
+  reg('SETPC', 0, 1, (args) => {
+    const v = args[0]
+    if (v === undefined || !isNumber(v)) { turtle(ctx).cyclePenColor(); return '' }
+    turtle(ctx).setPenColor(num(v, 'SETPC')); return ''
+  })
+  reg('SETBACKGROUND', 0, 1, (args) => {
+    const v = args[0]
+    if (v === undefined || !isNumber(v)) return turtle(ctx).nextCycleColor()
+    turtle(ctx).setBackground(num(v, 'SETBACKGROUND')); return ''
+  })
+  reg('SETBG', 0, 1, (args) => {
+    const v = args[0]
+    if (v === undefined || !isNumber(v)) return turtle(ctx).nextCycleColor()
+    turtle(ctx).setBackground(num(v, 'SETBG')); return ''
+  })
   reg('SETPENSIZE', 1, 1, (args) => { turtle(ctx).setPenSize(num(args[0], 'SETPENSIZE')); return '' })
   reg('SETPEN', 1, 1, (args) => {
     const p = args[0]

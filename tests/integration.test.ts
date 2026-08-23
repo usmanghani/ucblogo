@@ -5,7 +5,7 @@ import { Turtle } from '../src/turtle/Turtle'
 function makeCtx() {
   const canvasCtx = {
     fillStyle: '', strokeStyle: '', lineWidth: 1, lineCap: '', lineJoin: '', font: '',
-    fillRect: () => {}, beginPath: () => {}, moveTo: () => {}, lineTo: () => {},
+    fillRect: () => {}, drawImage: () => {}, beginPath: () => {}, moveTo: () => {}, lineTo: () => {},
     stroke: () => {}, arc: () => {}, fill: () => {}, translate: () => {},
     rotate: () => {}, closePath: () => {}, save: () => {}, restore: () => {}, fillText: () => {},
   } as unknown as CanvasRenderingContext2D

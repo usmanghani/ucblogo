@@ -57,14 +57,21 @@ export const LOGO_COLORS: Record<number, string> = {
 export class Turtle {
   private ctx: CanvasRenderingContext2D
   private canvas: HTMLCanvasElement
+  /** Offscreen layer holding pen strokes only; the turtle marker is
+   *  composited on top at display time so it can move without erasing lines. */
+  private buf: HTMLCanvasElement
+  private bctx: CanvasRenderingContext2D
   private state: TurtleState
   private callbacks: TurtleCallbacks
   private width: number
   private height: number
-
   constructor(canvas: HTMLCanvasElement, callbacks: TurtleCallbacks = {}) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')!
+    this.buf = document.createElement('canvas')
+    this.buf.width = canvas.width
+    this.buf.height = canvas.height
+    this.bctx = this.buf.getContext('2d')!
     this.callbacks = callbacks
     this.width = canvas.width
     this.height = canvas.height
@@ -81,6 +88,7 @@ export class Turtle {
       background: 15,
     }
     this.clearScreen()
+    this.render()
   }
 
   getState(): TurtleState {
@@ -89,11 +97,24 @@ export class Turtle {
 
   /** Set canvas dimensions (call on resize). */
   setSize(width: number, height: number): void {
+    if (width <= 0 || height <= 0) return
+    // Copy existing strokes before resizing (resizing clears a canvas).
+    let saved: HTMLCanvasElement | null = null
+    if (this.buf.width > 0 && this.buf.height > 0) {
+      saved = document.createElement('canvas')
+      saved.width = this.buf.width
+      saved.height = this.buf.height
+      saved.getContext('2d')!.drawImage(this.buf, 0, 0)
+    }
     this.width = width
     this.height = height
     this.canvas.width = width
     this.canvas.height = height
-    this.redraw()
+    this.buf.width = width
+    this.buf.height = height
+    this.clearScreen()
+    if (saved) this.bctx.drawImage(saved, 0, 0)
+    this.render()
   }
 
   /** Convert a Logo coordinate to screen pixel coordinates. */
@@ -103,27 +124,24 @@ export class Turtle {
     return [sx, sy]
   }
 
-  /** Clear the canvas to the background color. */
+  /** Clear the drawing to the background color (CS: turtle homes too). */
   clearScreen(): void {
-    this.ctx.fillStyle = LOGO_COLORS[this.state.background] ?? '#ffffff'
-    this.ctx.fillRect(0, 0, this.width, this.height)
-    this.ctx.lineWidth = this.state.penSize
-    this.ctx.strokeStyle = LOGO_COLORS[this.state.penColor] ?? '#000000'
-    this.ctx.lineCap = 'round'
-    this.ctx.lineJoin = 'round'
+    this.bctx.fillStyle = LOGO_COLORS[this.state.background] ?? '#ffffff'
+    this.bctx.fillRect(0, 0, this.width, this.height)
+    this.bctx.lineWidth = this.state.penSize
+    this.bctx.strokeStyle = LOGO_COLORS[this.state.penColor] ?? '#000000'
+    this.bctx.lineCap = 'round'
+    this.bctx.lineJoin = 'round'
   }
 
   /** Clear the drawing (same as CLEAN: keep turtle, clear lines). */
   clean(): void {
-    this.ctx.save()
-    this.ctx.fillStyle = LOGO_COLORS[this.state.background] ?? '#ffffff'
-    this.ctx.fillRect(0, 0, this.width, this.height)
-    this.ctx.restore()
-    this.redraw()
+    this.clearScreen()
   }
 
-  /** Redraw the turtle marker on top of the current drawing. */
-  private redraw(): void {
+  /** Composite the stroke buffer onto the display canvas, then the marker. */
+  private render(): void {
+    this.ctx.drawImage(this.buf, 0, 0)
     if (!this.state.visible) return
     const [sx, sy] = this.toScreen(this.state.x, this.state.y)
     this.ctx.save()
@@ -141,6 +159,7 @@ export class Turtle {
     this.ctx.stroke()
     this.ctx.restore()
   }
+
 
   // --- Movement ---
 
@@ -198,10 +217,10 @@ export class Turtle {
     const [newSx, newSy] = this.toScreen(x, y)
 
     if (this.state.penDown) {
-      this.ctx.beginPath()
-      this.ctx.moveTo(oldSx, oldSy)
-      this.ctx.lineTo(newSx, newSy)
-      this.ctx.stroke()
+      this.bctx.beginPath()
+      this.bctx.moveTo(oldSx, oldSy)
+      this.bctx.lineTo(newSx, newSy)
+      this.bctx.stroke()
     }
 
     this.state.x = x
@@ -223,13 +242,13 @@ export class Turtle {
 
   setPenColor(color: number): void {
     this.state.penColor = color
-    this.ctx.strokeStyle = LOGO_COLORS[color] ?? '#000000'
+    this.bctx.strokeStyle = LOGO_COLORS[color] ?? '#000000'
     this.notify()
   }
 
   setPenSize(size: number): void {
     this.state.penSize = size
-    this.ctx.lineWidth = size
+    this.bctx.lineWidth = size
     this.notify()
   }
 
@@ -237,6 +256,21 @@ export class Turtle {
     this.state.background = color
     this.clearScreen()
     this.notify()
+  }
+
+
+  /** Advance to the next palette color, skipping the background color. */
+  cyclePenColor(): void {
+    let c = (this.state.penColor + 1) % 16
+    if (c === this.state.background) c = (c + 1) % 16
+    this.setPenColor(c)
+  }
+
+  /** Next color in the palette after the pen color (does not change anything). */
+  nextCycleColor(): number {
+    let c = (this.state.penColor + 1) % 16
+    if (c === this.state.background) c = (c + 1) % 16
+    return c
   }
 
   setPenMode(mode: PenMode): void {
@@ -272,9 +306,9 @@ export class Turtle {
     const startAngle = -rad - Math.PI / 2
     const arcAngle = (angle * Math.PI) / 180
     if (this.state.penDown) {
-      this.ctx.beginPath()
-      this.ctx.arc(sx, sy, radius, startAngle, startAngle + arcAngle, angle < 0)
-      this.ctx.stroke()
+      this.bctx.beginPath()
+      this.bctx.arc(sx, sy, radius, startAngle, startAngle + arcAngle, angle < 0)
+      this.bctx.stroke()
     }
     // Update heading and position to the arc endpoint.
     const endRad = rad + arcAngle
@@ -288,25 +322,26 @@ export class Turtle {
   /** Draw a filled circle of the given radius around the turtle. */
   fill(): void {
     const [sx, sy] = this.toScreen(this.state.x, this.state.y)
-    this.ctx.save()
-    this.ctx.fillStyle = LOGO_COLORS[this.state.penColor] ?? '#000000'
-    this.ctx.beginPath()
-    this.ctx.arc(sx, sy, this.state.penSize * 4, 0, Math.PI * 2)
-    this.ctx.fill()
-    this.ctx.restore()
+    this.bctx.save()
+    this.bctx.fillStyle = LOGO_COLORS[this.state.penColor] ?? '#000000'
+    this.bctx.beginPath()
+    this.bctx.arc(sx, sy, this.state.penSize * 4, 0, Math.PI * 2)
+    this.bctx.fill()
+    this.bctx.restore()
   }
 
   /** Draw text at the turtle's position. */
   label(text: string): void {
     const [sx, sy] = this.toScreen(this.state.x, this.state.y)
-    this.ctx.save()
-    this.ctx.fillStyle = LOGO_COLORS[this.state.penColor] ?? '#000000'
-    this.ctx.font = `${this.state.penSize * 12}px monospace`
-    this.ctx.fillText(text, sx, sy)
-    this.ctx.restore()
+    this.bctx.save()
+    this.bctx.fillStyle = LOGO_COLORS[this.state.penColor] ?? '#000000'
+    this.bctx.font = `${this.state.penSize * 12}px monospace`
+    this.bctx.fillText(text, sx, sy)
+    this.bctx.restore()
   }
 
   private notify(): void {
+    this.render()
     this.callbacks.onStateChange?.(this.getState())
   }
 }
