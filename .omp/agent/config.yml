@@ -1,0 +1,109 @@
+providers: 
+  webSearchOrder: 
+    - codex
+    - perplexity
+    - gemini
+    - anthropic
+    - xai
+    - zai
+    - exa
+    - tinyfish
+    - jina
+    - kagi
+    - tavily
+    - firecrawl
+    - brave
+    - kimi
+    - parallel
+    - synthetic
+    - searxng
+    - startpage
+    - duckduckgo
+    - ecosia
+    - google
+    - mojeek
+    - public
+  autoThinkingMaxEffort: max
+modelRoles: 
+  default: litellm/deepseek-ai/DeepSeek-V4-Pro-0813
+  smol: litellm/openai.gpt-5.6-luna:max
+  slow: litellm/deepseek-ai/DeepSeek-V4-Pro-0813:auto
+  vision: litellm/deepseek-ai/DeepSeek-V4-Pro-0813:auto
+  plan: litellm/openai.gpt-5.6-terra:xhigh
+  designer: litellm/claude-gpt-5.6-terra:xhigh
+  commit: litellm/deepseek-ai/DeepSeek-V4-Flash-0731:auto
+  tiny: litellm/deepseek-ai/DeepSeek-V4-Flash-0731:auto
+  task: litellm/openai.gpt-5.6-luna:max
+  advisor: litellm/openai.gpt-5.6-terra:xhigh
+  ds4: litellm/deepseek-ai/DeepSeek-V4-Pro-0813:auto
+  kimi: baseten/moonshotai/Kimi-K3
+  glm: baseten/zai-org/GLM-5.2-Fast:high
+  luna: litellm/openai.gpt-5.6-luna:max
+  ds4pro: litellm/deepseek-ai/DeepSeek-V4-Pro-0813:auto
+  reviewer: litellm/deepseek-ai/DeepSeek-V4-Pro-0813:auto
+  minimax: fireworks/minimax-m3:xhigh
+  sol: litellm/openai.gpt-5.6-sol:high
+  terra: openai-codex/gpt-5.6-terra:high
+  wafer-ds4flash: wafer-serverless/DeepSeek-V4-Flash-0731-Fast:max
+  terrax: openai-codex/gpt-5.6-terra:xhigh
+  lunax: litellm/openai.gpt-5.6-luna:xhigh
+symbolPreset: unicode
+theme: 
+  dark: titanium
+setupVersion: 2
+cycleOrder: 
+  - smol
+  - slow
+  - default
+  - vision
+  - plan
+  - designer
+  - commit
+  - tiny
+  - task
+  - advisor
+  - ds4
+  - kimi
+  - glm
+  - luna
+  - ds4pro
+  - reviewer
+  - terra
+  - sol
+  - wafer-ds4flash
+  - minimax
+dev: 
+  autoqaConsent: granted
+steeringMode: one-at-a-time
+followUpMode: one-at-a-time
+interruptMode: wait
+defaultThinkingLevel: auto
+retry: 
+  fallbackChains: 
+    kimi: 
+      - fireworks/kimi-k3
+    glm: 
+      - fireworks/glm-5.2-fast
+proseOnlyThinking: false
+advisor: 
+  enabled: true
+  syncBacklog: "5"
+  immuneTurns: 3
+prewalk: 
+  enabled: false
+externalThinking: true
+textVerbosity: high
+tier: 
+  openai: auto
+  anthropic: none
+  google: none
+  subagent: auto
+  advisor: auto
+task: 
+  agentAdvisor: 
+    task: "on"
+disabledExtensions: 
+  []
+composer: 
+  shape: box
+extendedContext: false
