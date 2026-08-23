@@ -111,7 +111,7 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
       <MonacoEditor
         height="100%"
         language="logo"
-        defaultValue={'; Welcome to UCBLogo Web!\n; Type Logo code here and press Run.\n\nREPEAT 4 [FD 80 RT 90]\n'}
+        defaultValue={'TO rainbow_spiral :size :angle\n  IF :size > 300 [STOP]\n  SETPENCOLOR (SETBGCOLOR)\n  FORWARD :size\n  RIGHT :angle\n  rainbow_spiral (:size + 2) :angle\nEND\n\nCS\nrainbow_spiral 1 89\n'}
         onMount={handleMount}
         theme="logo-theme"
         options={{
