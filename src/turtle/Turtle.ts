@@ -132,6 +132,9 @@ export class Turtle {
     this.bctx.strokeStyle = LOGO_COLORS[this.state.penColor] ?? '#000000'
     this.bctx.lineCap = 'round'
     this.bctx.lineJoin = 'round'
+    // The display canvas only ever shows what render() composites from the
+    // stroke buffer — clear it too, or old drawing stays visible.
+    this.render()
   }
 
   /** Clear the drawing (same as CLEAN: keep turtle, clear lines). */
