@@ -1,41 +1,160 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react'
-import MonacoEditor from '@monaco-editor/react'
+import MonacoEditor, { loader } from '@monaco-editor/react'
+import * as monacoEditor from 'monaco-editor/editor/editor.api'
+import EditorWorker from 'monaco-editor/editor/editor.worker?worker'
+
+// Bundle Monaco with the app instead of loading it from a CDN at runtime, so
+// the editor appears even offline or behind a restrictive network. Only the
+// base editor worker is needed: Logo highlighting is a Monarch grammar.
+declare global {
+  interface Window {
+    MonacoEnvironment?: { getWorker: () => Worker }
+    monaco?: typeof monacoEditor
+  }
+}
+if (typeof window !== 'undefined') {
+  window.MonacoEnvironment = { getWorker: () => new EditorWorker() }
+  window.monaco = monacoEditor
+  loader.config({ monaco: monacoEditor })
+}
+
+export interface EditorError {
+  message: string
+  line: number
+  col?: number
+}
 
 export interface EditorHandle {
   getValue: () => string
   setValue: (v: string) => void
+  /** Mark an error in the gutter/text and scroll the cursor to it. */
+  showError: (err: EditorError) => void
+  /** Remove error markers. */
+  clearErrors: () => void
+  /** Move the cursor to a line and reveal it. */
+  goToLine: (line: number, col?: number) => void
+}
+
+interface MonacoLike {
+  languages: {
+    register: (args: { id: string }) => void
+    setLanguageConfiguration: (lang: string, cfg: Record<string, unknown>) => void
+    setMonarchTokensProvider: (lang: string, provider: Record<string, unknown>) => void
+  }
+  editor: {
+    defineTheme: (name: string, def: Record<string, unknown>) => void
+    setTheme: (name: string) => void
+    setModelMarkers: (model: unknown, owner: string, markers: unknown[]) => void
+  }
+  MarkerSeverity: { Error: number }
+  KeyMod: { CtrlCmd: number }
+  KeyCode: { Enter: number; Slash: number }
+  Range: new (startLine: number, startCol: number, endLine: number, endCol: number) => unknown
+}
+
+interface EditorLike {
+  getValue: () => string
+  setValue: (v: string) => void
+  getModel: () => { getLineContent: (line: number) => string; getLineCount: () => number; getLineMaxColumn: (line: number) => number } | null
+  setPosition: (p: { lineNumber: number; column: number }) => void
+  revealLineInCenter: (line: number) => void
+  focus: () => void
+  deltaDecorations: (old: string[], decos: unknown[]) => string[]
+}
+
+const CODE_KEY = 'ucblogo.editor.code'
+const DEFAULT_PROGRAM = 'TO rainbow_spiral :size :angle\n  IF :size > 300 [STOP]\n  SETPENCOLOR (SETBGCOLOR)\n  FORWARD :size\n  RIGHT :angle\n  rainbow_spiral (:size + 2) :angle\nEND\n\nCS\nrainbow_spiral 1 89\n'
+
+function loadSavedCode(): string {
+  try {
+    return localStorage.getItem(CODE_KEY) ?? DEFAULT_PROGRAM
+  } catch {
+    return DEFAULT_PROGRAM
+  }
 }
 
 export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function Editor({ onRun }, ref) {
-  const editorRef = useRef<unknown>(null)
+  const editorRef = useRef<EditorLike | null>(null)
+  const monacoRef = useRef<MonacoLike | null>(null)
+  const decorationsRef = useRef<string[]>([])
+  /** Value set before Monaco finished mounting; applied on mount. */
+  const pendingRef = useRef<string | null>(null)
+  const initialRef = useRef<string>(loadSavedCode())
+
+  const persist = (v: string) => {
+    try {
+      localStorage.setItem(CODE_KEY, v)
+    } catch {
+      // ignore
+    }
+  }
+
+  const clearErrors = () => {
+    const ed = editorRef.current
+    const m = monacoRef.current
+    if (!ed || !m) return
+    const model = ed.getModel()
+    if (model) m.editor.setModelMarkers(model, 'logo', [])
+    decorationsRef.current = ed.deltaDecorations(decorationsRef.current, [])
+  }
+
+  const goToLine = (line: number, col = 1) => {
+    const ed = editorRef.current
+    if (!ed) return
+    const model = ed.getModel()
+    const lineNumber = Math.max(1, Math.min(line, model?.getLineCount() ?? line))
+    ed.setPosition({ lineNumber, column: Math.max(1, col) })
+    ed.revealLineInCenter(lineNumber)
+    ed.focus()
+  }
 
   useImperativeHandle(ref, () => ({
-    getValue: () => {
-      const ed = editorRef.current as { getValue: () => string } | null
-      return ed?.getValue() ?? ''
-    },
+    getValue: () => editorRef.current?.getValue() ?? pendingRef.current ?? initialRef.current,
     setValue: (v: string) => {
-      const ed = editorRef.current as { setValue: (v: string) => void } | null
-      ed?.setValue(v)
+      clearErrors()
+      if (editorRef.current) editorRef.current.setValue(v)
+      else pendingRef.current = v
+      persist(v)
+    },
+    clearErrors,
+    goToLine,
+    showError: (err: EditorError) => {
+      const ed = editorRef.current
+      const m = monacoRef.current
+      if (!ed || !m) return
+      const model = ed.getModel()
+      if (!model) return
+      const line = Math.max(1, Math.min(err.line, model.getLineCount()))
+      const endCol = model.getLineMaxColumn(line)
+      const startCol = Math.max(1, Math.min(err.col ?? 1, endCol))
+      m.editor.setModelMarkers(model, 'logo', [
+        {
+          startLineNumber: line,
+          startColumn: startCol,
+          endLineNumber: line,
+          endColumn: endCol,
+          message: err.message,
+          severity: m.MarkerSeverity.Error,
+        },
+      ])
+      decorationsRef.current = ed.deltaDecorations(decorationsRef.current, [
+        {
+          range: new m.Range(line, 1, line, 1),
+          options: { isWholeLine: true, className: 'logo-error-line', glyphMarginClassName: 'logo-error-glyph', linesDecorationsClassName: 'logo-error-gutter' },
+        },
+      ])
+      goToLine(line, startCol)
     },
   }))
 
   const handleMount = (editorInst: unknown, monaco: unknown) => {
-    editorRef.current = editorInst
-    const m = monaco as {
-      languages: {
-        register: (args: { id: string }) => void
-        setLanguageConfiguration: (lang: string, cfg: Record<string, unknown>) => void
-        setMonarchTokensProvider: (lang: string, provider: Record<string, unknown>) => void
-      }
-      editor: {
-        defineTheme: (name: string, def: Record<string, unknown>) => void
-        setTheme: (name: string) => void
-      }
-      KeyMod: { CtrlCmd: number }
-      KeyCode: { Enter: number; Slash: number }
-      Range: new (startLine: number, startCol: number, endLine: number, endCol: number) => unknown
+    editorRef.current = editorInst as EditorLike
+    monacoRef.current = monaco as MonacoLike
+    if (pendingRef.current !== null) {
+      editorRef.current.setValue(pendingRef.current)
+      pendingRef.current = null
     }
+    const m = monaco as MonacoLike
     const ed = editorInst as {
       addAction: (action: { id: string; label: string; keybindings: number[]; run: () => void }) => void
       getModel: () => { getLineContent: (line: number) => string } | null
@@ -80,7 +199,7 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
           [/:\w*/, 'variable'],
           [/-?\d+(\.\d+)?([eE][+-]?\d+)?/, 'number'],
           [/[a-zA-Z_]\w*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
-          [/[\[\]\{\}\(\)]/, 'delimiter'],
+          [/[[\]{}()]/, 'delimiter'],
           [/[+\-*/=<>]/, 'operator'],
         ],
       },
@@ -165,14 +284,16 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
       <MonacoEditor
         height="100%"
         language="logo"
-        defaultValue={'TO rainbow_spiral :size :angle\n  IF :size > 300 [STOP]\n  SETPENCOLOR (SETBGCOLOR)\n  FORWARD :size\n  RIGHT :angle\n  rainbow_spiral (:size + 2) :angle\nEND\n\nCS\nrainbow_spiral 1 89\n'}
+        defaultValue={initialRef.current}
         onMount={handleMount}
+        onChange={(v) => persist(v ?? '')}
         theme="logo-theme"
         options={{
           fontSize: 14,
           fontFamily: "'Fira Code', 'Cascadia Code', monospace",
           minimap: { enabled: false },
           lineNumbers: 'on',
+          glyphMargin: true,
           automaticLayout: true,
           tabSize: 2,
         }}

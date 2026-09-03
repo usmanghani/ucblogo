@@ -496,11 +496,9 @@ export class Evaluator implements AritySource {
       }
       case 'FOREVER': {
         const body = node.args[0]
-        let result: LogoValue = ''
         while (true) {
-          result = this.evalInstructionList(body, env)
+          this.evalInstructionList(body, env)
         }
-        return result
       }
       case 'CATCH': {
         const tag = String(this.eval(node.args[0], env)).toUpperCase()

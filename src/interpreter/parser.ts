@@ -758,7 +758,7 @@ export function tokensToText(tokens: Token[]): string {
 
 /** Render a word as a quoted Logo literal, barring it when needed. */
 export function quoteWord(w: string): string {
-  if (w === '' || /[\s\[\]{}()|;]/.test(w)) return '"|' + w + '|'
+  if (w === '' || /[\s[\]{}()|;]/.test(w)) return '"|' + w + '|'
   return '"' + w
 }
 

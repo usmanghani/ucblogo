@@ -186,3 +186,49 @@ $ npm run build
 | `integration.test.ts` | 5 | Square, spiral, tree (recursive), factorial, sentence |
 | `registry.test.ts` | 3 | All arity keys uppercase, all registered, no duplicates |
 | `virtualfs.test.ts` | 7 | Write/read, normalize, erase, list, sequential I/O, append, open tracking |
+
+## Session: Logo Blocks, Terrapin parity, CLI
+
+### Terrapin Logo Program Library parity
+- `tests/fixtures/logolib/*.lgo`: all 48 programs from
+  https://resources.terrapinlogo.com/logolib/ ; `tests/logolib.test.ts` runs
+  each one headless with a step budget. Programs that are interactive or loop
+  forever by design are listed in `NON_TERMINATING` and may exhaust the budget.
+- Parser rewrite: lists are data parsed lazily as instructions (cached per
+  procedure generation); NEWLINE tokens end instructions; `IF ... THEN ... ELSE`;
+  `(proc args...)` explicit calls; `|barred|` and `` `backquoted` `` words;
+  `~`/`\` continuation; Terrapin headers (`TO F :a [:opt 1] [:rest] 2`, bare
+  params); one-line `TO ... END`; UCBLogo unary-minus rule; both FOR forms.
+- Evaluator: step budget + `requestStop`, `LogoError.line/col/procName`,
+  optional/rest params, GO/LABEL, TOPLEVEL, tail calls (self-recursion reuses
+  the frame; other tail calls keep the caller frame for dynamic scope),
+  `evalTemplateWith` substitutes `?` textually as Terrapin does, primitives see
+  the caller's frame (`ctx.env` swapped per call), MAKE assigns up the chain.
+- Turtle: many turtles (TELL/ASK/EACH/WHO), colour names / RGB / UCBLogo
+  palette (default background 7 = white), pen modes, stamps, fonts, wrap lines.
+- `primitives/terrapin.ts`: PR, CT, TT, LOCAL/LMAKE, PPROPS, ALIAS, WAIT/PLAY
+  (no-op), widgets/events (no-op), RANDOM 1..n (`RANDOM0` for 0..n-1), AGET/APUT,
+  `.LT/.GT/...`, turtle attributes as GPROP properties, etc.
+
+### Logo Blocks
+- `src/blocks/logoBlocks.ts` (custom blocks + toolbox), `logoGenerator.ts`
+  (Blockly CodeGenerator emitting Logo; every composite value parenthesised),
+  `lgbFormat.ts` (`.lgb` = generated Logo + workspace JSON in `;` comments).
+- `components/BlocksPanel.tsx` injects Blockly (zelos renderer, dark theme,
+  media from `public/blockly-media`), persists the workspace in localStorage.
+- App: Blocks / Code tabs; blocks regenerate the editor code; Export/Import
+  `.lgb`/`.lgo`; Save/Load through the virtual FS use `.lgb` in Blocks mode.
+
+### Errors in the editor
+- `runOrThrow` + `formatError`; the App shows a banner with a "line N" jump,
+  Monaco markers/decorations mark the failing line and move the cursor there.
+- Monaco is bundled locally (`monaco-editor/editor/editor.api` + editor
+  worker) instead of the CDN loader, so the editor no longer sticks on
+  "Loading..." behind restrictive networks.
+
+### CLI
+- `src/cli/SoftwareCanvas.ts` (canvas-2D subset rasterizer), `terminal.ts`
+  (24-bit half-block or braille rendering, LABEL overlay), `main.ts` (file /
+  `-e` / REPL, `--ppm`, `--ascii`, error line echo). Built with
+  `vite build --config vite.cli.config.ts` to `dist/cli/ucblogo.mjs`
+  (`npm run build:cli`, `bin: ucblogo`).

@@ -47,11 +47,72 @@ body {
   flex-shrink: 0;
 }
 
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .toolbar-title {
   font-weight: 600;
   font-size: 16px;
   color: #fff;
   letter-spacing: 0.5px;
+}
+
+.mode-tabs {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.mode-tabs button {
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mode-tabs button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Editor panel: blocks or code */
+.blocks-pane,
+.code-pane {
+  height: 100%;
+}
+
+.blocks-pane[hidden],
+.code-pane[hidden] {
+  display: none;
+}
+
+.blocks-host {
+  height: 100%;
+  width: 100%;
+}
+
+.blocklyToolboxDiv {
+  background: var(--panel);
+}
+
+.blocklyTreeLabel {
+  color: var(--text);
+}
+
+.blocklyTreeRow {
+  border-radius: 4px;
+}
+
+.blocklyTreeSelected .blocklyTreeLabel {
+  color: #fff;
 }
 
 .toolbar-buttons {
@@ -162,6 +223,77 @@ body {
 
 .output div {
   line-height: 1.4;
+}
+
+/* Errors */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  background: #5a1d1d;
+  color: #ffd7d7;
+  border-bottom: 1px solid #7a2a2a;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.error-icon {
+  color: #ff8a8a;
+}
+
+.error-text {
+  flex: 1;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.error-jump {
+  background: #7a2a2a;
+  color: #fff;
+  border: 1px solid #a33;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.error-jump:hover {
+  background: #933;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  color: #ffd7d7;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.output-error {
+  color: #ff8a8a;
+}
+
+.monaco-editor .logo-error-line {
+  background: rgba(255, 80, 80, 0.18);
+}
+
+.monaco-editor .logo-error-glyph {
+  background: #d16969;
+  border-radius: 50%;
+  width: 10px !important;
+  height: 10px !important;
+  margin-left: 5px;
+  margin-top: 4px;
+}
+
+.monaco-editor .logo-error-gutter {
+  background: #d16969;
+  width: 3px !important;
+  margin-left: 3px;
 }
 
 /* Status bar */
