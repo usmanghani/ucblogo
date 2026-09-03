@@ -1,0 +1,205 @@
+; Procedures
+
+TO MAIN
+	READY
+END
+
+TO SHOOT :ARROW :HEAD :DIST
+	TELL :ARROW
+	SETPC "BLACK
+	SETH :HEAD
+	PD FD :DIST
+	IF INCIRCLE? :TARGET.CENTER 20 OUTPUT "YELLOW
+	IF INCIRCLE? :TARGET.CENTER 40 OUTPUT "RED
+	IF INCIRCLE? :TARGET.CENTER 60 OUTPUT "BLUE
+	IF INCIRCLE? :TARGET.CENTER 80 OUTPUT "BLACK
+	IF INCIRCLE? :TARGET.CENTER 100 OUTPUT "WHITE
+	OUTPUT "SKYBLUE	; MUST HAVE MISSED
+END
+
+TO FIRE :DIST
+	SETPC "BLACK
+	PD FD :DIST
+	IF INCIRCLE? :TARGET.CENTER 20 OUTPUT "YELLOW
+	IF INCIRCLE? :TARGET.CENTER 40 OUTPUT "RED
+	IF INCIRCLE? :TARGET.CENTER 60 OUTPUT "BLUE
+	IF INCIRCLE? :TARGET.CENTER 80 OUTPUT "BLACK
+	IF INCIRCLE? :TARGET.CENTER 100 OUTPUT "WHITE
+	OUTPUT "SKYBLUE	; MUST HAVE MISSED
+END
+
+TO INCIRCLE? :CENTER :RADIUS
+	IF .LE DISTANCE :CENTER (:RADIUS + 1) OUTPUT TRUE
+	OUTPUT FALSE
+END
+
+TO READY
+	CT DRAW HT
+	SPLITSCREEN
+	WINDOW
+	PPROPS "LOGO.ENV [LAYOUT PURE SPLITTER.POS 0.8]
+
+	MAKE "MAXX FIRST BOUNDS
+	MAKE "MAXY LAST BOUNDS
+
+	PRINT "|A turtle target game ... see how well you do with five shots.|
+	PRINT "|Read the Help About Target Practice to see what options are available.|
+	PRINT "|Type SHOOT followed by the turtle number and the heading and distance to the target.|
+	PRINT "|Each shot reports where the turtle landed ... SKYBLUE is a miss!|
+	PRINT "|Type READY when you are ready to try again. Good luck!|
+
+; MIXITUP is meant to add variation so the target is either on the left or right side
+; of the screen to keep it a little more interesting.
+
+	MAKE "MIXITUP PICK [-1 1]
+
+; Use FILL to essential set the backgroud color so that DOTCOLOR will see it.
+
+	SETPC "SKYBLUE
+	PD FILL PU
+
+	SETX :MIXITUP * (:MAXX - RANDOM.BETWEEN 100 200)	; try to keep the entire target on the screen
+
+	MAKE "TARGET.CENTER POS
+	MAKE "RING.COLOR [YELLOW RED BLUE BLACK WHITE]
+	MAKE "RING.RADIUS [20 40 60 80 100]
+
+	PD TARGET
+	HT
+	TELLALL 1 5
+	EACH [LOADSHAPE WORD "~HOME/TOOLBOX/SHAPES/~ WHO LOCKSHAPE PU ST SETH 0]
+
+; adjust x/y max to keep turtle on screen
+
+	MAKE "MAXX :MAXX - 32
+	MAKE "MAXY :MAXY - 32
+
+; The target is in a position that is 100 to 200 steps from one edge of the screen.
+; Make sure the arrows are at the other end of the screen and away from the target.
+
+	EACH [
+		SETX :MIXITUP * (RANDOM.BETWEEN MINUS :MAXX 200)
+		SETY :MIXITUP * RANDOM.BETWEEN MINUS :MAXY :MAXY
+	]
+	PD
+END
+
+TO REPLAY
+	CT DRAW HT
+	SPLITSCREEN
+	WINDOW
+	PPROPS "LOGO.ENV [LAYOUT PURE SPLITTER.POS 0.8]
+
+	MAKE "MAXX FIRST BOUNDS
+	MAKE "MAXY LAST BOUNDS
+
+	PRINT "|A turtle target game ... see how well you do with five shots.|
+	PRINT "|Use TELL to select the turtle to use. Use RT or LT to point to the target.|
+	PRINT "|Use FIRE with the distance for your shot.|
+	PRINT "|Each shot reports where the turtle landed ... SKYBLUE is a miss!|
+	PRINT "|Type REPLAY when you are ready to try again. Good luck!|
+
+; MIXITUP is meant to add variation so the target is either on the left or right side
+; of the screen to keep it a little more interesting.
+
+	MAKE "MIXITUP PICK [-1 1]
+
+; Use FILL to essential set the backgroud color so that DOTCOLOR will see it.
+
+	SETPC "SKYBLUE
+	PD FILL PU
+
+	SETX :MIXITUP * (:MAXX - RANDOM.BETWEEN 100 200)	; try to keep the entire target on the screen
+
+	MAKE "TARGET.CENTER POS
+	MAKE "RING.COLOR [YELLOW RED BLUE BLACK WHITE]
+	MAKE "RING.RADIUS [20 40 60 80 100]
+
+	PD TARGET
+	HT
+	TELLALL 1 5
+	EACH [LOADSHAPE WORD "~HOME/TOOLBOX/SHAPES/~ WHO PU ST SETH 0]
+
+; adjust x/y max to keep turtle on screen
+
+	MAKE "MAXX :MAXX - 32
+	MAKE "MAXY :MAXY - 32
+
+; The target is in a position that is 100 to 200 steps from one edge of the screen.
+; Make sure the arrows are at the other end of the screen and away from the target.
+
+	EACH [
+		SETX :MIXITUP * (RANDOM.BETWEEN MINUS :MAXX 200)
+		SETY :MIXITUP * RANDOM.BETWEEN MINUS :MAXY :MAXY
+		SETH RANDOM 360 PD
+	]
+	PD
+END
+
+TO TARGET
+	SETPC "WHITE (STAMPOVAL 100 100 TRUE)
+	SETPC "BLACK (STAMPOVAL 80 80 TRUE)
+	SETPC "BLUE (STAMPOVAL 60 60 TRUE)
+	SETPC "RED (STAMPOVAL 40 40 TRUE)
+	SETPC "YELLOW (STAMPOVAL 20 20 TRUE)
+END
+
+TO RANDOM.BETWEEN :A :B
+	OUTPUT (:A - 1) + RANDOM (:B - :A + 1)
+END
+
+TO RH :N
+	TELL :N PD SETH TOWARDS MOUSE FD DISTANCE MOUSE
+END
+
+TO COMPASS [:POINTS 12] 0
+	EACH [DO.COMPASS :POINTS]
+END
+
+TO DO.COMPASS :POINTS
+	REPEAT :POINTS [
+		IF HEADING <= 180 [
+			FORWARD 60
+			TT HEADING
+			BACK 60
+		] [
+			FORWARD 60
+			LOCAL "X
+			MAKE "X GETX
+			PU SETX :X - 24 PD
+			TT HEADING
+			PU SETX :X PD
+			BACK 60
+		]
+		RT 360 / :POINTS
+	]
+END
+
+TO ABOUT
+	(LOCAL "LF "PP "SAMPLE.TEXT "P1 "P2 "P2A "P3 "P3A "P4 "P5 "P6 "P7 "P8 "P9 "P10)
+	MAKE "LF CHAR 10
+	MAKE "PP WORD :LF :LF
+	MAKE "P1 "|The target game is a way to practice guessing headings and distances. |
+	MAKE "P2 "|Type COMPASS for help with setting the headings at 30-degree increments. |
+	MAKE "P2A "|Or try (COMPASS 24) or (COMPASS 8) for more or fewer degree increments. |
+	MAKE "P3 "|Type GRIDON for help with setting the distances using the default 100-step increments. |
+	MAKE "P3A "|Or try GRID 50 for a tighter grid pattern. You still need to do GRIDON to see it. |
+	MAKE "P4 "|Feel free to use RT and LT and FD rather than SHOOT. |
+	MAKE "P5 "|Do UNLOCKSHAPE so image reflects its heading.|
+	MAKE "P6 "|Get the bugs out with SETSHAPE "ROACH and UNLOCKSHAPE.|
+	MAKE "P7 "|Restart with READY to use SHOOT; or restart with REPLAY to use FIRE.|
+	MAKE "SAMPLE.TEXT (WORD :P1 :LF :P2 :P2A :LF :P3 :P3A :LF :P4 :LF :P5 :LF :P6 :LF :P7)
+	IGNORE ALERT :SAMPLE.TEXT
+END
+
+TO ROBIN.HOOD
+	REPEAT 5 [
+		TELL REPCOUNT SETH TOWARDS :TARGET.CENTER
+		IGNORE SHOOT REPCOUNT HEADING DISTANCE :TARGET.CENTER
+		WAIT 500
+	]
+	PRINT "||
+	PRINT "|I've had a lot of practice! Good luck!|
+END
+
+MAIN

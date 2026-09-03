@@ -1,0 +1,379 @@
+TO WANDER :BITMAP
+	PPROP "WANDERERS "WANDERING FPUT :BITMAP GPROP "WANDERERS "WANDERING
+	PPROP :BITMAP "WANDER.ID LAUNCH LIST "WANDERING QUOTE :BITMAP
+END
+
+TO WANDERING :BITMAP
+	ASK :BITMAP [FOREVER [FD 1 WAIT 1]]
+END
+
+TO WANDERING? :BITMAP
+	OUTPUT NOT EMPTY? GPROP :BITMAP "WANDER.ID
+END
+
+TO STOP.WANDERING :BITMAP
+	IF NOT WANDERING? :BITMAP THEN STOP
+	LOCAL "ID
+	MAKE "ID GPROP :BITMAP "WANDER.ID
+	REMPROP :BITMAP "WANDER.ID
+	PPROP "WANDERERS "WANDERING BUTMEMBER :BITMAP GPROP "WANDERERS "WANDERING
+	HALT :ID
+END
+
+TO WANDERERS
+	OUTPUT GPROP "WANDERERS "WANDERING
+END
+
+TO STOP.WANDERERS
+	FOREACH WANDERERS [STOP.WANDERING "?]
+END
+
+TO ANIMATE :BITMAP :ANIMATE.SHAPES [:ANIMATE.DELAY 200] 2
+	IF ANIMATING? :BITMAP THEN STOP.ANIMATING :BITMAP
+	PPROP :BITMAP "ANIMATE.SHAPES :ANIMATE.SHAPES
+	PPROP :BITMAP "ANIMATE.DELAY :ANIMATE.DELAY
+	PPROP "ANIMATERS "ANIMATING FPUT :BITMAP GPROP "ANIMATERS "ANIMATING
+	PPROP :BITMAP "ANIMATE.ID LAUNCH LIST "ANIMATING QUOTE (:BITMAP)
+END
+
+TO ANIMATING :BITMAP
+	WHILE [TRUE] [
+		FOREACH GPROP :BITMAP "ANIMATE.SHAPES [
+			ASK :BITMAP [SETSHAPE "? WAIT GPROP :BITMAP "ANIMATE.DELAY]
+		]
+	]
+END
+
+TO ANIMATING? :BITMAP
+	OUTPUT NOT EMPTY? GPROP :BITMAP "ANIMATE.ID
+END
+
+TO STOP.ANIMATING :BITMAP
+	IF NOT ANIMATING? :BITMAP THEN STOP
+	LOCAL "ID
+	MAKE "ID GPROP :BITMAP "ANIMATE.ID
+	PPROP "ANIMATERS "ANIMATING BUTMEMBER :BITMAP GPROP "ANIMATERS "ANIMATING
+	HALT :ID
+END
+
+TO DELAY.ANIMATING :BITMAP :ANIMATE.DELAY
+	PPROP :BITMAP "ANIMATE.DELAY :ANIMATE.DELAY
+END
+
+TO ANIMATE.SHAPES :BITMAP :ANIMATE.SHAPES
+	PPROP :BITMAP "ANIMATE.SHAPES :ANIMATE.SHAPES
+END
+
+TO ANIMATERS
+	OUTPUT GPROP "ANIMATERS "ANIMATING
+END
+
+TO STOP.ANIMATERS
+	FOREACH ANIMATERS [STOP.ANIMATING "?]
+END
+
+TO MOVE :BITMAP :PATH :FOREVER? [:MOVE.DELAY 1] 3
+	IF MOVING? :BITMAP THEN STOP.MOVING :BITMAP
+	PPROP :BITMAP "MOVE.PATH :PATH
+	PPROP :BITMAP "MOVE.FOREVER? :FOREVER?
+	PPROP :BITMAP "MOVE.DELAY :MOVE.DELAY
+	PPROP "MOVERS "MOVING FPUT :BITMAP GPROP "MOVERS "MOVING
+	PPROP :BITMAP "MOVE.ID LAUNCH LIST "MOVING QUOTE :BITMAP
+END
+
+TO MOVING :BITMAP
+	(LOCAL "PATH "PENSTATE)
+	MAKE "PATH GPROP :BITMAP "MOVE.PATH
+	ASK :BITMAP [
+		MAKE "PENSTATE LIST PEN PENCOLOR
+		PENUP
+		SETXY FIRST :PATH
+		SETPOS POS
+		SETPEN :PENSTATE
+	]
+	MOVE.ALONG BUTFIRST :PATH
+	IF NOT GPROP :BITMAP "MOVE.FOREVER? [
+		STOP.MOVING :BITMAP
+		STOP
+	]
+	WHILE [TRUE] [MOVE.ALONG :PATH]
+END
+
+TO MOVE.ALONG :PATH
+	IF EMPTY? :PATH STOP
+	MOVE.TO FIRST :PATH
+	MOVE.ALONG BUTFIRST :PATH
+END
+
+TO MOVE.TO :POINT
+	ASK :BITMAP [PPROP :BITMAP "HEADING TOWARDS :POINT]
+	WHILE [NOT EQUAL? :POINT GPROP :BITMAP "POSITION] [
+		ASK :BITMAP [FORWARD 1 WAIT GPROP :BITMAP "MOVE.DELAY]
+	]
+END
+
+TO MOVING? :BITMAP
+	OUTPUT NOT EMPTY? GPROP :BITMAP "MOVE.ID
+END
+
+TO STOP.MOVING :BITMAP
+	IF NOT MOVING? :BITMAP THEN STOP
+	LOCAL "ID
+	MAKE "ID GPROP :BITMAP "MOVE.ID
+	REMPROP :BITMAP "MOVE.ID
+	PPROP "MOVERS "MOVING BUTMEMBER :BITMAP GPROP "MOVERS "MOVING
+	HALT :ID
+END
+
+TO DELAY.MOVING :BITMAP :DELAY
+	PPROP :BITMAP "MOVE.DELAY :DELAY
+END
+
+TO MOVERS
+	OUTPUT GPROP "MOVERS "MOVING
+END
+
+TO STOP.MOVERS
+	FOREACH MOVERS [STOP.MOVING "?]
+END
+
+TO ANY.MOVERS?
+	OUTPUT NOT EMPTY? MOVERS
+END
+
+TO DO.ANIMATE
+	MAKE "WELCOME [~W ~E ~L ~C ~O ~M ~E |~ |]
+	MAKE "TO. [~T ~O |~ |]
+	MAKE "TERRAPIN [~T ~E ~R ~R ~A ~P ~I ~N |~ |]
+	MAKE "LOGO [~L ~O ~G ~O |~ |]
+	MAKE "AND. [~A ~N ~D |~ |]
+	MAKE "HAVE [~H ~A ~V ~E |~ |]
+	MAKE "FUN [~F ~U ~N |~ |]
+	MAKE "EXPLORING [~E ~X ~P ~L ~O ~R ~I ~N ~G |~ |]
+	TELL :WINDY.SET HT
+	TELL :CIRCLE.SET
+	EACH [SETPC PICK BUTMEMBER "WHITE :OUR.COLORS]
+	EACH [ST SETH WHO * 360 / 16 PU FD 100 SETH 0 LOCKSHAPE]
+	ANIMATE 0 :WELCOME
+	ANIMATE 2 :TO.
+	ANIMATE 4 :TERRAPIN
+	ANIMATE 6 :LOGO
+	ANIMATE 8 :AND.
+	ANIMATE 10 :HAVE
+	ANIMATE 12 :FUN
+	ANIMATE 14 :EXPLORING
+	ANIMATE 1 [CLOUD1 CLOUD2]
+	ANIMATE 3 [DOG1 DOG2]
+	ANIMATE 5 [INCH1 INCH2 INCH3 INCH2]
+	ANIMATE 7 [JELLY1 JELLY2]
+	ANIMATE 9 [MOOSE1 MOOSE2 MOOSE3]
+	ANIMATE 11 [WHEEL1 WHEEL2]
+	ANIMATE 13 [UFO1 UFO2 UFO3 UFO2]
+	ANIMATE 15 [LOGOTURTLE TURTLE TURTLE1 TURTLE2 TURTLE3]
+END
+
+TO MOVE.ODD
+	TELL :SHAPES.SET
+	EACH [PPROP WHO "PATH LIST POS [0 0]]
+	EACH [MOVE WHO GPROP WHO "PATH TRUE]
+END
+
+TO MAIN
+	CT
+	SETBG "AZURE
+	MAKE "OUR.COLORS [BLACK NAVY GREEN TEAL MAROON PURPLE OLIVE LIGHTGRAY GRAY BLUE LIME CYAN RED MAGENTA YELLOW WHITE]
+	SETTURTLES 18
+	MAKE "BANNER.SET [0 2 4 6 8 10 12 14]
+	MAKE "SHAPES.SET [1 3 5 7 9 11 13 15]
+	MAKE "CIRCLE.SET SE :BANNER.SET :SHAPES.SET
+	MAKE "WINDY.SET [16 17]
+	PRINT "|Animation demo using 3 techniques:|
+	PRINT "||
+	PRINT "|ANIMATE uses flip-book technique where an object animates by repeatedly changing shapes.|
+	PRINT "|Each of the 16 turtles has been assigned a list of shapes to cycle through over and over.|
+	DO.ANIMATE
+	WAIT 5000
+	PRINT "||
+	PRINT "|MOVE uses a defined path of xy-coordinates and repeatedly does SETHEADNG TOWARDS a point|
+	PRINT "|and then FORWARD 1 until the turtle arrives. The paths can be short and straight ... |
+	MOVE.ODD
+	WAIT 5000
+	PRINT "|or long and windy. ANIMATE and MOVE can be used together. The bug is cycling through 3 shapes.|
+	PRINT "|And the turtle can still draw with the pen while it's animating.|
+	TELL :SHAPES.SET EACH [STOP.MOVING WHO SETPOS FIRST GPROP WHO "PATH]
+	DO.WINDY
+	WAIT 8000
+	PRINT "||
+	PRINT "|WANDER is just taking 1 step at a time in the direction you're heading and going forever.|
+	PRINT "|In case you didn't figure out what the flashing letters were doing, check out the banners|
+	PRINT "|set up with LOADSNAP and then animated with WANDER. The letters are as they appear in the|
+	PRINT "|Shapes folder of the Toolbox. As turtle shapes, they took on the color of the pen.|
+	DO.BANNERS
+	WAIT 1000
+	TELL [1 11] EACH [SETH 270 SETTS 2 WANDER WHO]
+	TELL [3 5 9] EACH [SETH 90 SETTS 2.5 WANDER WHO]
+	TELL [7 15] EACH [SETH 0 SETTS 3 WANDER WHO]
+	TELL 13 SETH 45 SETTS 4 WANDER 13
+	PRINT "||
+	PRINT "|ANIMATE and WANDER can also be used together. Normally, wanderers don't change heading but|
+	PRINT "|if the Graphics window was set to BOUNCE, the turtles would ricochet off the borders.|
+	WAIT 10000
+	STOP.ANIMATERS
+	STOP.MOVERS
+	STOP.WANDERERS
+	DRAW
+	MAIN
+END
+
+TO DO.BANNERS
+	FOREACH :BANNER.SET [
+		ASK "? [HT]
+		BANNER "? GPROP "? "POSITION
+	]
+END
+
+TO BANNER :TURTLE :XY
+	MAKE "X FIRST :XY
+	MAKE "Y LAST :XY
+	MAKE "INC 40
+	MAKE "BANNER.ITEMS []
+	FOREACH BL GPROP :TURTLE "ANIMATE.SHAPES [
+		MAKE "I LOADSNAP WORD "~HOME/TOOLBOX/SHAPES/ "?
+		PPROP :I "POSITION LIST :X :Y
+		MAKE "X :X + :INC
+		MAKE "BANNER.ITEMS LPUT :I :BANNER.ITEMS
+	]
+	FOREACH :BANNER.ITEMS [ASK "? [LOCKSHAPE SETH 270 WANDER "?]]
+	WAIT 3000
+	FOREACH :BANNER.ITEMS [STOP.WANDERING "?]
+	ERASE :BANNER.ITEMS
+END
+
+TO DO.WINDY
+	MAKE "LOGO [
+			[-113 20] [-112 20] [-111 20] [-110 20] [-110 19] [-109 19] [-109 18] [-108 18] [-106 18] \
+			[-105 17] [-104 16] [-102 16] [-101 16] [-100 16] [-99 16] [-97 16] [-96 16] [-95 16] \
+			[-93 16] [-92 16] [-91 16] [-90 16] [-89 16] [-88 16] [-87 16] [-86 16] [-85 16] [-84 16] \
+			[-82 16] [-81 17] [-78 17] [-77 17] [-76 17] [-75 18] [-74 18] [-73 18] [-72 18] [-71 19] \
+			[-70 19] [-69 20] [-68 20] [-68 21] [-67 21] [-66 21] [-66 22] [-65 22] [-65 23] [-64 23] \
+			[-62 23] [-62 24] [-61 24] [-61 25] [-60 25] [-58 26] [-58 27] [-57 27] [-57 28] [-56 28] \
+			[-56 29] [-55 30] [-54 30] [-54 31] [-53 32] [-53 33] [-52 34] [-50 35] [-50 36] [-50 37] \
+			[-50 38] [-50 39] [-50 40] [-50 41] [-50 42] [-50 43] [-51 44] [-51 45] [-52 45] [-52 46] \
+			[-53 46] [-55 46] [-56 46] [-59 46] [-60 46] [-61 46] [-63 46] [-64 46] [-65 46] [-65 45] \
+			[-67 45] [-67 44] [-68 44] [-68 43] [-68 42] [-68 41] [-69 41] [-69 40] [-69 39] [-70 38] \
+			[-71 37] [-71 36] [-71 35] [-71 34] [-71 33] [-71 32] [-72 32] [-72 31] [-72 30] [-72 29] \
+			[-72 28] [-72 27] [-72 26] [-72 25] [-72 24] [-72 23] [-72 22] [-72 21] [-72 20] [-72 19] \
+			[-72 18] [-72 17] [-72 16] [-72 15] [-72 13] [-72 11] [-72 10] [-72 8] [-72 7] [-72 5] \
+			[-72 4] [-72 2] [-72 1] [-72 0] [-72 -1] [-72 -2] [-73 -2] [-73 -3] [-73 -4] [-73 -5] \
+			[-73 -6] [-73 -7] [-73 -8] [-73 -9] [-74 -10] [-75 -11] [-75 -13] [-75 -14] [-76 -14] \
+			[-76 -15] [-76 -16] [-76 -17] [-77 -19] [-77 -20] [-79 -22] [-79 -23] [-80 -24] [-80 -25] \
+			[-80 -26] [-80 -27] [-81 -27] [-81 -28] [-81 -29] [-83 -30] [-83 -31] [-84 -31] [-84 -32] \
+			[-84 -33] [-85 -33] [-85 -34] [-87 -34] [-87 -35] [-88 -35] [-88 -36] [-89 -37] [-90 -38] \
+			[-91 -38] [-92 -39] [-92 -41] [-93 -42] [-95 -42] [-96 -43] [-96 -44] [-97 -44] [-98 -44] \
+			[-99 -44] [-100 -44] [-101 -44] [-102 -44] [-103 -44] [-104 -44] [-105 -44] [-106 -44] \
+			[-107 -44] [-108 -43] [-108 -42] [-108 -41] [-109 -39] [-109 -38] [-111 -37] [-111 -36] \
+			[-111 -35] [-111 -34] [-111 -33] [-111 -32] [-111 -31] [-111 -30] [-111 -29] [-111 -28] \
+			[-111 -27] [-111 -26] [-111 -25] [-111 -24] [-110 -23] [-110 -22] [-109 -22] [-108 -22] \
+			[-108 -21] [-107 -21] [-105 -21] [-104 -21] [-101 -21] [-98 -21] [-97 -21] [-96 -21] [-94 -21] \
+			[-93 -21] [-92 -21] [-90 -22] [-89 -23] [-89 -24] [-88 -24] [-87 -25] [-86 -26] [-85 -26] \
+			[-85 -27] [-84 -28] [-83 -29] [-82 -30] [-81 -30] [-80 -30] [-78 -31] [-77 -32] [-76 -33] \
+			[-74 -33] [-73 -33] [-72 -34] [-69 -35] [-67 -37] [-65 -38] [-63 -38] [-62 -38] [-61 -38] \
+			[-60 -39] [-58 -39] [-57 -39] [-56 -39] [-54 -39] [-53 -39] [-52 -39] [-50 -39] [-49 -39] \
+			[-48 -39] [-46 -39] [-45 -39] [-44 -39] [-43 -39] [-42 -39] [-41 -39] [-41 -38] [-41 -37] \
+			[-40 -37] [-38 -36] [-37 -35] [-37 -34] [-37 -33] [-36 -33] [-36 -32] [-35 -31] [-34 -30] \
+			[-33 -29] [-33 -28] [-33 -27] [-32 -26] [-30 -25] [-30 -24] [-29 -23] [-29 -22] [-29 -21] \
+			[-28 -20] [-26 -19] [-26 -18] [-26 -17] [-25 -17] [-25 -16] [-24 -16] [-24 -15] [-23 -15] \
+			[-22 -15] [-21 -15] [-20 -14] [-17 -14] [-16 -14] [-15 -14] [-14 -14] [-13 -14] [-12 -15] \
+			[-10 -15] [-9 -16] [-8 -17] [-6 -18] [-5 -19] [-4 -19] [-4 -20] [-4 -19] [-4 -18] [-4 -17] \
+			[-7 -16] [-8 -15] [-9 -14] [-12 -14] [-13 -14] [-16 -14] [-19 -14] [-20 -14] [-21 -14] \
+			[-22 -14] [-24 -15] [-25 -16] [-27 -17] [-27 -18] [-27 -19] [-28 -20] [-28 -21] [-28 -22] \
+			[-28 -24] [-28 -25] [-28 -26] [-28 -28] [-28 -29] [-28 -30] [-28 -31] [-28 -33] [-27 -34] \
+			[-25 -34] [-25 -35] [-22 -36] [-20 -36] [-17 -37] [-14 -37] [-12 -37] [-9 -38] [-8 -38] \
+			[-6 -38] [-5 -38] [-2 -38] [-1 -38] [-1 -37] [0 -36] [2 -34] [3 -32] [3 -31] [3 -29] \
+			[3 -28] [3 -26] [3 -25] [3 -23] [3 -22] [3 -21] [3 -20] [1 -19] [0 -18] [0 -17] [-3 -16] \
+			[-4 -16] [-8 -15] [-9 -15] [-11 -15] [-12 -15] [-13 -15] [-14 -15] [-15 -15] [-16 -15] \
+			[-16 -16] [-16 -17] [-16 -19] [-16 -20] [-16 -22] [-14 -23] [-10 -23] [-5 -24] [-1 -24] \
+			[3 -24] [4 -24] [6 -24] [7 -24] [8 -23] [10 -22] [11 -20] [12 -19] [15 -17] [16 -16] \
+			[18 -15] [19 -14] [22 -14] [24 -14] [27 -14] [30 -14] [32 -14] [35 -14] [36 -14] [37 -14] \
+			[38 -14] [39 -14] [39 -15] [39 -16] [40 -17] [40 -18] [40 -20] [43 -23] [44 -25] [46 -25] \
+			[46 -24] [46 -23] [46 -22] [46 -21] [46 -20] [46 -19] [45 -18] [44 -18] [44 -17] [41 -17] \
+			[40 -16] [36 -16] [35 -16] [33 -16] [32 -16] [31 -16] [29 -16] [28 -16] [27 -16] [25 -16] \
+			[24 -16] [24 -17] [23 -18] [21 -19] [21 -20] [20 -21] [20 -22] [20 -23] [20 -24] [20 -25] \
+			[20 -26] [20 -27] [20 -28] [20 -29] [23 -30] [24 -31] [26 -32] [27 -32] [28 -32] [29 -32] \
+			[31 -33] [32 -33] [33 -33] [34 -33] [35 -33] [36 -33] [37 -33] [38 -32] [38 -31] [39 -30] \
+			[39 -29] [40 -28] [40 -27] [40 -26] [42 -25] [42 -24] [42 -23] [43 -22] [43 -21] [43 -20] \
+			[43 -21] [43 -22] [43 -24] [43 -27] [43 -29] [43 -31] [43 -33] [43 -34] [43 -35] [43 -37] \
+			[43 -38] [43 -41] [43 -43] [43 -44] [43 -46] [43 -48] [42 -50] [42 -51] [41 -53] [41 -54] \
+			[41 -55] [41 -56] [41 -57] [40 -59] [40 -61] [39 -63] [37 -65] [37 -66] [36 -68] [36 -69] \
+			[35 -70] [33 -70] [32 -71] [31 -72] [29 -73] [28 -73] [27 -73] [24 -73] [23 -73] [22 -73] \
+			[21 -73] [20 -73] [20 -72] [19 -71] [17 -70] [17 -68] [17 -66] [17 -64] [17 -63] [17 -62] \
+			[17 -61] [17 -60] [18 -59] [19 -57] [19 -56] [22 -54] [23 -53] [24 -51] [26 -50] [27 -48] \
+			[28 -47] [30 -45] [31 -44] [32 -42] [34 -41] [35 -39] [37 -38] [39 -37] [40 -36] [41 -35] \
+			[42 -35] [43 -34] [46 -33] [47 -31] [50 -30] [52 -28] [55 -27] [57 -26] [59 -25] [60 -24] \
+			[62 -23] [64 -22] [67 -21] [68 -21] [70 -20] [71 -20] [72 -20] [74 -20] [75 -20] [76 -20] \
+			[77 -20] [78 -20] [77 -20] [77 -21] [76 -21] [73 -21] [72 -21] [71 -21] [68 -21] [65 -21] \
+			[63 -21] [61 -22] [60 -22] [60 -23] [60 -24] [60 -25] [60 -27] [60 -29] [60 -30] [60 -31] \
+			[60 -33] [60 -34] [60 -35] [62 -36] [63 -37] [65 -37] [67 -37] [70 -38] [72 -39] [75 -39] \
+			[76 -39] [77 -39] [78 -39] [79 -39] [81 -39] [83 -39] [84 -39] [85 -39] [87 -38] [87 -37] \
+			[88 -36] [90 -34] [90 -33] [91 -32] [91 -30] [92 -27] [92 -25] [92 -24] [92 -23] [92 -22] \
+			[92 -21] [92 -20] [90 -20] [88 -19] [88 -18] [87 -18] [84 -18] [81 -17] [80 -17] [79 -17] \
+			[78 -17] [77 -17] [76 -17] [76 -18] [75 -19] [75 -20] [75 -21] [75 -22] [75 -23] [75 -24] \
+			[76 -24] [78 -24] [79 -24] [80 -24] [82 -24] [84 -24] [87 -24] [91 -24] [95 -24] [96 -24] \
+			[97 -24] [98 -24] [99 -24] [100 -24] [101 -24] [102 -23] [103 -23] [103 -22] [104 -21] \
+			[107 -19] [108 -18] [109 -17] [110 -17] [110 -16] [111 -16] [112 -14] [113 -14] [114 -13] \
+			[115 -12] [115 -11] [116 -10] [118 -8] [119 -7] [119 -6] [120 -6] [120 5] [122 -4] \
+			[122 -3] [123 -2] [123 -1] [124 -1] [124 0] [126 1] [127 2] [127 3] [127 4] [127 5] \
+			[128 5] [127 5]]
+
+	MAKE "LOOP [
+			[-114 81] [-114 80] [-115 80] [-116 79] [-117 78] [-119 77] [-121 76] [-122 76] \
+			[-125 75] [-128 75] [-130 74] [-133 73] [-136 73] [-137 73] [-138 72] [-140 72] \
+			[-141 72] [-141 71] [-142 71] [-144 70] [-145 70] [-146 69] [-149 68] [-150 67] \
+			[-152 66] [-152 65] [-153 65] [-153 64] [-153 63] [-154 62] [-156 61] [-157 60] \
+			[-158 57] [-158 56] [-160 55] [-160 54] [-161 52] [-161 51] [-161 50] [-162 48] \
+			[-165 44] [-166 43] [-168 41] [-168 39] [-169 36] [-170 34] [-172 32] [-173 29] \
+			[-173 27] [-173 23] [-173 21] [-173 19] [-173 18] [-175 17] [-175 16] [-175 14] \
+			[-175 13] [-175 11] [-176 10] [-176 8] [-176 6] [-176 4] [-177 2] [-177 -1] \
+			[-177 -4] [-177 -8] [-177 -11] [-177 -14] [-177 -17] [-177 -19] [-177 -20] \
+			[-177 -22] [-177 -24] [-177 -26] [-177 -28] [-176 -30] [-174 -33] [-173 -37] \
+			[-170 -43] [-169 -47] [-166 -50] [-166 -53] [-163 -55] [-161 -58] [-158 -60] \
+			[-157 -62] [-154 -65] [-151 -66] [-147 -68] [-139 -72] [-137 -73] [-136 -73] \
+			[-135 -74] [-132 -75] [-131 -76] [-129 -77] [-127 -78] [-123 -81] [-117 -84] \
+			[-113 -86] [-111 -88] [-108 -90] [-105 -91] [-103 -92] [-100 -94] [-91 -97] \
+			[-87 -99] [-83 -100] [-80 -101] [-76 -102] [-74 -103] [-70 -103] [-67 -104] \
+			[-63 -104] [-58 -105] [-55 -105] [-54 -105] [-51 -105] [-47 -105] [-44 -105] \
+			[-40 -105] [-35 -105] [-27 -105] [-24 -105] [-23 -105] [-20 -105] [-16 -105] \
+			[-12 -105] [-8 -105] [-5 -105] [0 -105] [1 -105] [5 -105] [8 -104] [13 -104] \
+			[17 -103] [20 -102] [23 -102] [26 -102] [29 -101] [33 -100] [37 -99] [41 -98] \
+			[44 -97] [46 -96] [49 -96] [52 -95] [53 -95] [57 -94] [60 -93] [62 -92] [64 -92] \
+			[65 -91] [66 -90] [69 -89] [73 -88] [76 -86] [80 -84] [82 -82] [86 -80] [89 -79] \
+			[90 -77] [93 -74] [96 -72] [98 -69] [101 -68] [104 -66] [105 -64] [108 -63] \
+			[110 -60] [113 -59] [116 -56] [118 -54] [121 -52] [122 -50] [125 -48] [127 -45] \
+			[129 -42] [131 -40] [132 -38] [133 -36] [136 -34] [137 -31] [138 -28] [140 -25] \
+			[141 -22] [141 -19] [142 -15] [144 -12] [145 -9] [145 -7] [145 -5] [145 -4] \
+			[145 -3] [145 -2] [145 0] [145 3] [145 5] [145 7] [145 10] [143 12] [143 14] \
+			[143 16] [142 17] [142 20] [142 22] [141 23] [139 25] [138 26] [137 29] [134 31] \
+			[131 33] [130 35] [129 37] [127 38] [125 39] [122 41] [119 42] [118 44] [115 45] \
+			[113 46] [110 48] [106 49] [101 51] [98 52] [94 53] [93 54] [90 55] [89 56] \
+			[87 57] [85 58] [82 60] [79 61] [76 63] [74 64] [71 65] [69 65] [65 66] [62 67] \
+			[59 67] [57 68] [54 69] [53 69] [51 70] [50 71] [47 71] [46 72] [43 73] [41 74] \
+			[38 75] [35 76] [34 76] [31 77] [29 77] [26 78] [23 79] [21 80] [17 81] [14 81] \
+			[11 82] [10 82] [7 83] [5 84] [2 84] [-1 85] [-3 85] [-6 85] [-9 85] [-11 85] \
+			[-14 85] [-18 85] [-21 85] [-22 85] [-23 86] [-25 86] [-29 86] [-33 87] [-36 87] \
+			[-38 87] [-41 87] [-43 87] [-46 87] [-47 88] [-49 88] [-50 88] [-54 88] [-57 88] \
+			[-59 88] [-61 88] [-62 88] [-65 88] [-66 88] [-68 88] [-70 88] [-71 88] [-72 88] \
+			[-73 88] [-75 88] [-77 88] [-78 88] [-80 88] [-81 88] [-83 88] [-85 88] [-87 88] \
+			[-89 88] [-90 88] [-91 88] [-92 88] [-94 88] [-95 87] [-96 87] [-98 86] [-100 86] \
+			[-101 86] [-102 86] [-103 86] [-104 86] [-105 85] [-106 85] [-107 85] [-108 85] \
+			[-109 85] [-109 84] [-110 84] [-110 83] [-111 83] [-111 82]]
+
+	TELL 16 ST PD SETPC "RED MOVE 16 :LOGO FALSE
+	TELL 17 ST PD SETPC "BLUE MOVE 17 :LOOP TRUE ANIMATE 17 [BUG1 BUG2 BUG3 BUG2]
+END
+
+TO ABOUT
+	MAKE "MSG (WORD "|Basic Logo animation is done with many of the turtle graphics commands that affect the turtles in some way. They move with FD and BK. They rotate with LT and RT. They change colors with SETPC. They jump around with SETXY. And they can change appearance with SETSHAPE and LOADSHAPE. \n The 3 sets of routines defined here are just ways I've found useful for other projects. \n For example, MOVE was created for The Juggling Turtle demo, which also uses ANIMATE for the small jugglers sequence. WANDER is meant as a replacement to SETVELOCITY of older versions of Logo and was created for the ScatterGrams game.|")
+	IGNORE ALERT :MSG
+END
+
+MAIN

@@ -11,6 +11,7 @@
  */
 
 import type { Token } from './lexer'
+import type { ASTNode } from './parser'
 
 export type LogoValue = number | string | boolean | LogoList | LogoArray | null
 
@@ -77,16 +78,40 @@ export class LogoArray {
   toList(): LogoList {
     return new LogoList(this.items.slice())
   }
+
+  /** Overwrite the contents from a JS array (sized to match); returns this. */
+  fillFrom(values: LogoValue[]): LogoArray {
+    this.items.length = values.length
+    for (let i = 0; i < values.length; i++) this.items[i] = values[i]
+    return this
+  }
 }
 
 /** A user-defined Logo procedure. */
 export interface LogoProc {
   name: string
+  /** Required parameters. */
   params: string[]
+  /** Optional parameters `[:name default]` (default is a token sequence). */
+  optionalParams?: { name: string; defaultTokens: Token[] }[]
+  /** Rest parameter `[:name]`. */
+  restParam?: string
+  /** Explicit default arity from the header. */
+  defaultArity?: number
   /** Raw body tokens, parsed lazily at call time so forward references resolve. */
   bodyTokens: Token[]
   isMacro: boolean
   text?: string // original source text (for PO / TEXT)
+  /** Cache of the parsed body (valid while procGen matches). */
+  compiled?: ASTNode[]
+  compiledGen?: number
+  /** Labels targeted by GO within this procedure. */
+  gotoLabels?: Set<string>
+}
+
+/** Number of inputs a procedure takes by default. */
+export function procArity(p: LogoProc): number {
+  return p.defaultArity ?? p.params.length
 }
 
 /** A built-in primitive procedure. */
@@ -141,12 +166,24 @@ export function isNull(v: LogoValue): v is null {
 // Equality
 // ---------------------------------------------------------------------------
 
-/** Logo equality: numbers compare numerically, words by string, lists elementwise. */
+/**
+ * Logo equality: numbers compare numerically (a numeric word equals its
+ * number), words case-insensitively, booleans against TRUE/FALSE words, lists
+ * elementwise.
+ */
 export function logoEqual(a: LogoValue, b: LogoValue): boolean {
   if (a === null || b === null) return a === b
   if (isNumber(a) && isNumber(b)) return a === b
-  if (isWord(a) && isWord(b)) return a === b
+  if (isWord(a) && isWord(b)) {
+    if (a === b) return true
+    if (isNumericLiteral(a) && isNumericLiteral(b)) return parseFloat(a) === parseFloat(b)
+    return a.toUpperCase() === b.toUpperCase()
+  }
+  if (isNumber(a) && isWord(b)) return isNumericLiteral(b) && parseFloat(b) === a
+  if (isWord(a) && isNumber(b)) return isNumericLiteral(a) && parseFloat(a) === b
   if (isBoolean(a) && isBoolean(b)) return a === b
+  if (isBoolean(a) && isWord(b)) return (a ? 'TRUE' : 'FALSE') === b.toUpperCase()
+  if (isWord(a) && isBoolean(b)) return (b ? 'TRUE' : 'FALSE') === a.toUpperCase()
   if (isList(a) && isList(b)) return a.equals(b)
   if (isArray(a) && isArray(b)) {
     if (a.length !== b.length) return false
@@ -176,8 +213,34 @@ export function toLogoString(v: LogoValue): string {
 /** Format a number the way Logo does (no trailing .0 for integers). */
 export function formatNumber(n: number): string {
   if (Number.isInteger(n)) return String(n)
-  // Strip trailing zeros from float representation.
-  return String(n)
+  // Round away floating-point noise (e.g. 0.30000000000000004 -> 0.3).
+  const rounded = parseFloat(n.toPrecision(12))
+  return String(rounded)
+}
+
+/**
+ * Render a list's items as Logo source text so it can be re-parsed as
+ * instructions (RUN, templates, instruction lists held in variables).
+ */
+export function listToSource(items: LogoValue[]): string {
+  return items.map(itemToSource).join(' ')
+}
+
+function itemToSource(v: LogoValue): string {
+  if (v === null) return '"'
+  if (isList(v)) return '[' + listToSource(v.items) + ']'
+  if (isArray(v)) return '{' + listToSource(v.items) + '}'
+  if (isBoolean(v)) return v ? '"TRUE' : '"FALSE'
+  if (isNumber(v)) return formatNumber(v)
+  // Words that came from list data are already in source form (":x", "\"q",
+  // "(" ...); only words with spaces or bars need barring.
+  if (v === '') return '"||'
+  if (/[\s|;]/.test(v)) {
+    if (v.startsWith('"')) return '"|' + v.slice(1) + '|'
+    if (v.startsWith(':')) return ':|' + v.slice(1) + '|'
+    return '"|' + v + '|'
+  }
+  return v
 }
 
 /**

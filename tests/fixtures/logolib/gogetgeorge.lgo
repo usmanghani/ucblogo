@@ -1,0 +1,68 @@
+TO GO.GET.GEORGE [:N 1200] 0
+	DRAW
+	CLEARSCREEN
+	PPROP "LOGO.ENV "LAYOUT "MINIMAL
+	FULLSCREEN
+	HT
+	SETBG "AQUAMARINE
+	PPROP "GRAPHICS "TITLE `Go get George! He's out there somewhere.`
+	MAKE "GEORGE LOADSNAP `https://resources.terrapinlogo.com/logolib/img/turtle.png`
+	TELL :GEORGE
+
+; adjust the max screen dimensions by the turtle's size
+	MAKE "MAXX (FIRST GPROP :CURRENT.GRAPHICS "DRAWSIZE) - 32
+	MAKE "MAXY (LAST GPROP :CURRENT.GRAPHICS "DRAWSIZE) - 32
+	MAKE "NEWX INT ROUND (RANDOM :MAXX) * PICK [-0.5 0.5]
+	MAKE "NEWY INT ROUND (RANDOM :MAXY) * PICK [-0.5 0.5]
+	SETPOS LIST :NEWX :NEWY
+
+	REPEAT :N [
+MAKE "MAXY LAST GPROP :CURRENT.GRAPHICS "DRAWSIZE
+		MAKE "NEWX INT ROUND (RANDOM :MAXX) * PICK [-0.5 0.5]
+		MAKE "NEWY INT ROUND (RANDOM :MAXY) * PICK [-0.5 0.5]
+		SETPOS LIST :NEWX :NEWY
+		SETH RANDOM 360
+		SETTS .4
+		STAMP
+	]
+	HT
+	MAKE "GEORGE LOADSNAP `https://resources.terrapinlogo.com/logolib/img/george.png`
+	TELL :GEORGE SETTS .4
+	PPROP :GEORGE "RUN [YOU.FOUND.ME]
+	PPROP :GEORGE "TOOLTIP `You found me!!`	
+	MAKE "NEWX INT ROUND (RANDOM :MAXX) * PICK [-0.5 0.5]
+	MAKE "NEWY INT ROUND (RANDOM :MAXY) * PICK [-0.5 0.5]
+	SETPOS LIST :NEWX :NEWY
+	SETH RANDOM 360	
+END
+
+TO YOU.FOUND.ME
+	TELL :GEORGE
+	PLAY "BLUBB
+	REPEAT 5 [SETTS 1.5 WAIT 300 SETTS .4 WAIT 300]
+	IGNORE ALERT "|You found me! Let's play again!|
+	GO.GET.GEORGE
+END
+
+TO MAIN
+	GO.GET.GEORGE
+END
+
+TO ABOUT
+	(LOCAL "LF "PP "SAMPLE.TEXT "P1 "P2 "P3 "P4 "P5 "P6 "P7 "P8 "P9 "P10)
+	MAKE "LF CHAR 10
+	MAKE "PP WORD :LF :LF
+	MAKE "P1 `GoGetGeorge is a hidden picture puzzle. The screen is filled with `
+	MAKE "P2 `up to 1200 identical turtles, and then there's George. `
+	MAKE "P3 `George is just a little different than all the other turtles. `
+	MAKE "P4 `See if you can find him. He'll let you know when you touch him. `
+
+	MAKE "P6 `Why George? He's named after a tortoise (a land turtle) from the `
+	MAKE "P7 `Galapagos Islands. `
+	MAKE "P8 "|Click REDO to play another game. |
+
+	MAKE "SAMPLE.TEXT (WORD :P1 :P2 :PP :P3 :P4 :PP :P6 :P7 :PP :P8)
+	IGNORE ALERT :SAMPLE.TEXT
+END
+
+MAIN

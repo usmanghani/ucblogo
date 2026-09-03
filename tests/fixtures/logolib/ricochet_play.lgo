@@ -1,0 +1,298 @@
+; Ricochet Play takes advantage of the BOUNCE mode of the graphics window.
+; When the turtle hits the edge, it 'bounces off the wall' at an angle
+; of reflection that simulates a pool ball hitting the rail.
+
+TO SET.THE.TABLE
+	DRAW
+	(SETSHAPE)
+	SETTS 1
+	MAKE "MAXX FIRST BOUNDS
+	MAKE "MAXY LAST BOUNDS
+	SETBG "GREEN
+	SETPC "DARKGREEN
+
+; Attempt to make a 'rail' 
+
+	SETPC "LIGHTGREEN BORDER 10
+	SETBOUNDS LIST (FIRST BOUNDS) - 10 (LAST BOUNDS) - 10
+	MAKE "MAXX FIRST BOUNDS
+	MAKE "MAXY LAST BOUNDS
+	
+; Pocket centers: 4 corners and 2 side pockets
+
+	MAKE "LLC LIST MINUS :MAXX MINUS :MAXY
+	MAKE "ULC LIST MINUS :MAXX       :MAXY
+	MAKE "TSP LIST           0       :MAXY + 10
+	MAKE "URC LIST       :MAXX       :MAXY
+	MAKE "LRC LIST       :MAXX MINUS :MAXY
+	MAKE "BSP LIST           0 MINUS :MAXY + 10
+
+; Alternate side pockets if table is vertical
+; Additional side pockets if table is square
+
+	MAKE "RSP LIST       :MAXX + 10     0
+	MAKE "LSP LIST MINUS :MAXX + 10     0
+
+; Pocket names are in a sequence that reflects the orientation of the table
+; so that the sights can properly be marked on the rails.
+; The orientation also determines where the spots are located.
+; Make a note of the orientation -- assume it's horizontal but adjust for vertical.
+; A square table is a special case since all 4 sides have side pockets.
+
+	COND [
+		[.EQ :MAXX :MAXY][MAKE "POCKETS [LLC LSP ULC TSP URC RSP LRC BSP] MAKE "ORIENTATION "SQUARE]
+		[.GT :MAXX :MAXY][MAKE "POCKETS [LLC ULC TSP URC LRC BSP] MAKE "ORIENTATION "HORIZONTAL]
+		[.LT :MAXX :MAXY][MAKE "POCKETS [LLC LSP ULC URC RSP LRC] MAKE "ORIENTATION "VERTICAL]
+		["TRUE][(THROW MINUS 42 `Life is not as we know it`)]
+	]
+
+	MAKE "RADIUS 25
+	SETPC "BLACK
+	HT
+
+; Draw the pockets
+
+	FOREACH :POCKETS [
+		PU SETXY THING "? PD (STAMPOVAL :RADIUS :RADIUS "TRUE)
+	]
+	
+	MAKE "HORIZONTAL.SPOTS LIST (LIST -.50 * :MAXX 0) (LIST .50 * :MAXX 0)
+	MAKE "VERTICAL.SPOTS LIST (LIST 0 .50 * :MAXY) (LIST 0 -.50 * :MAXY)
+
+	MAKE "HORIZONTAL.SIGHTS (LIST
+			(LIST MINUS :MAXX + 5 -.50 * :MAXY)
+			(LIST MINUS :MAXX + 5 0)
+			(LIST MINUS :MAXX + 5 .50 * :MAXY)
+			(LIST -.75 * :MAXX :MAXY + 5)
+			(LIST -.50 * :MAXX :MAXY + 5)
+			(LIST -.25 * :MAXX :MAXY + 5)
+			(LIST .25 * :MAXX :MAXY + 5)
+			(LIST .50 * :MAXX :MAXY + 5)
+			(LIST .75 * :MAXX :MAXY + 5)
+			(LIST :MAXX + 5 .50 * :MAXY)
+			(LIST :MAXX + 5 0)
+			(LIST :MAXX + 5 -.50 * :MAXY)
+			(LIST .75 * :MAXX MINUS :MAXY + 5)
+			(LIST .50 * :MAXX MINUS :MAXY + 5)
+			(LIST .25 * :MAXX MINUS :MAXY + 5)
+			(LIST -.25 * :MAXX MINUS :MAXY + 5)
+			(LIST -.50 * :MAXX MINUS :MAXY + 5)
+			(LIST -.75 * :MAXX MINUS :MAXY + 5)
+		)
+
+	MAKE "VERTICAL.SIGHTS (LIST
+			(LIST MINUS :MAXX + 5 -.75 * :MAXY)
+			(LIST MINUS :MAXX + 5 -.50 * :MAXY)
+			(LIST MINUS :MAXX + 5 -.25 * :MAXY)
+			(LIST MINUS :MAXX + 5 .25 * :MAXY)
+			(LIST MINUS :MAXX + 5 .50 * :MAXY)
+			(LIST MINUS :MAXX + 5 .75 * :MAXY)
+			(LIST -.50 * :MAXX :MAXY + 5)
+			(LIST 0 :MAXY + 5)
+			(LIST .50 * :MAXX :MAXY + 5)
+			(LIST :MAXX + 5 .75 * :MAXY)
+			(LIST :MAXX + 5 .50 * :MAXY)
+			(LIST :MAXX + 5 .25 * :MAXY)
+			(LIST :MAXX + 5 -.25 * :MAXY)
+			(LIST :MAXX + 5 -.50 * :MAXY)
+			(LIST :MAXX + 5 -.75 * :MAXY)
+			(LIST .50 * :MAXX MINUS :MAXY + 5)
+			(LIST 0 MINUS :MAXY + 5)
+			(LIST -.50 * :MAXX MINUS :MAXY + 5)
+		)
+
+; Draw the spots and sights ... don't use black since that is the color of the pockets.
+
+	SWITCH :ORIENTATION [
+		[HORIZONTAL] [DO.SPOTS :HORIZONTAL.SPOTS DO.SIGHTS :HORIZONTAL.SIGHTS]
+		[VERTICAL] [DO.SPOTS :VERTICAL.SPOTS DO.SIGHTS :VERTICAL.SIGHTS]
+		[SQUARE][]
+	]
+
+	PU HOME ST
+	CT 
+	BOUNCE
+	PRINT `Welcome to Ricochet Play ... or Propel the Shell?`
+	PRINT ``
+	PRINT `Use HOME reset the turtle position.`
+	PRINT `Use RIGHT or LEFT or SETHEADING to aim.`
+	PRINT `Use S with a number to make a shot.`
+	PRINT `Get fancy and try a bank shot.`
+	PRINT ``
+	PRINT `To try different table sizes, drag the windows around,`
+	PRINT `then type T.`
+END
+
+TO DO.SPOTS :SPOTS
+	FOREACH :SPOTS [
+		PU SETXY ? PD SETPC "WHITE (STAMPOVAL 5 5 "TRUE) SETPC "DARKGRAY (STAMPOVAL 2 2 "TRUE)
+	]
+END
+
+TO DO.SIGHTS :SIGHTS
+	FOREACH :SIGHTS [
+		PU SETXY ? PD SETPC "GOLDENROD (STAMPOVAL 3 3  "TRUE)
+	]
+END
+
+; It's already been determined that the turtle is in a pocket.
+; POCKET outputs the pocket name where the turtle is.
+
+TO POCKET
+	FOREACH :POCKETS [
+		IF INCIRCLE? THING "? OUTPUT "?
+	]
+
+;	(THROW MINUS 42 `There must have been dirt on the table`)
+; Believe it or don't, the stamped circle that represents the pocket
+; can be ever so slightly beyond the radius so that the turtle thinks
+; it has hit a pocket when in fact it has not so I'm treating that as
+; if it was dirt on the table ... tough play, I know.
+
+	WAIT 1000
+	PRINT `Hold on there ... so close ... but no cigar ... tough break.`
+	MAKE "DIRT.ON.THE.TABLE POS
+	OUTPUT "DIRT.ON.THE.TABLE
+END
+
+; Uses the turtle's position to compute distance to each pocket.
+; The turtle must be within :RADIUS steps from the pocket center.
+; Allow for quirkiness of turtle circles that may be just bit jagged.
+
+TO INCIRCLE? :CENTER
+	IF .LE DISTANCE :CENTER (:RADIUS + 1) OUTPUT "TRUE
+	OUTPUT "FALSE
+END
+
+TO IN.POCKET?
+	FOREACH :POCKETS [
+		IF INCIRCLE? THING "? OUTPUT "TRUE
+	]
+	OUTPUT "FALSE
+END
+
+; make a shot for a distance
+ 
+TO S :D
+	WHILE [.GT :D 0] [
+		FD 2 SPIN
+		MAKE "D :D - 2
+		IF IN.POCKET? [
+			PRINT `You're a real hustler, aren't you?`
+			SETXY THING POCKET
+			SETH TOWARDS [0 0]
+			(SETSHAPE)
+			STOP
+		]
+	]
+	(SETSHAPE)
+	PRINT `Better luck next time, rookie!`
+END
+
+TO SPIN
+	local "before make "before pos
+	local "beforeh make "beforeh heading
+	REPEAT 8 [RT 90]
+; Michael adds :EPSILON as a range of equality for testing. Originally, SPIN would report a difference although quite small.
+; Even though this is a global system variable, I set it here because this was the cause for adding it to Logo anyway.
+	MAKE "EPSILON .01 ; effectively a range of error of 1% will be consider equal
+	local "after make "after pos
+	local "afterh make "afterh heading
+	if not equal? :before :after [(show `POS before and after SPIN:` :before :after)]
+	if not equal? :beforeh :afterh [(show `HEADING before and after SPIN:` :beforeh :afterh)]
+END
+
+TO T
+	SET.THE.TABLE
+END
+
+TO DEMO
+	LOCALMAKE "OLDPEN PEN
+	REPEAT 2 [
+		SETH RANDOM 360 S 500 + RANDOM 1000
+		WAIT 1000
+		PU HOME RUN (LIST :OLDPEN)
+	]
+END
+
+; COND simulates the COND statement of Lisp
+; It's an alternative to stacking up IF ... ELSE IF ... statements.
+; The actual conditions are set up in the call to COND as a list of pairs of lists. For example:
+
+; The first element of the :CONDITIONS list is a logical test and if 
+; it is "TRUE then the second element is run. Otherwise the next pair
+; of elements is evaluated in the same way. Use "TRUE in the final
+; pair to establish a default.
+
+TO COND :CONDITIONS
+	IF EMPTY? :CONDITIONS STOP
+	IF EQUAL? "TRUE RUN FIRST :CONDITIONS THEN RUN FIRST BUTFIRST :CONDITIONS STOP
+	COND BUTFIRST BUTFIRST :CONDITIONS
+END
+
+BURY [COND]
+
+TO SWITCH :VALUE :CASES
+	IF EMPTY? :CASES STOP
+	IF MEMBER? :VALUE FIRST :CASES \
+		THEN RUN FIRST BUTFIRST :CASES STOP
+	IF EQUAL? "ELSE FIRST FIRST :CASES \
+		THEN RUN FIRST BUTFIRST :CASES STOP
+	SWITCH :VALUE BUTFIRST BUTFIRST :CASES
+END
+
+BURY [SWITCH]
+
+; This routine draws a border around the current graphics window
+
+TO BORDER :WIDTH
+	(LOCAL "OLDWIDTH "OLDMODE "OLDPEN "OLDPOS "OLDHEADING)
+
+	MAKE "OLDWIDTH WIDTH ; NOTE: This is the Logo command not the input!
+	MAKE "OLDHEADING HEADING
+
+; The pen width does not wrap around the screen so
+; set the width to twice the requested size. The turtle
+; is pushed up against the screen border so only half of
+; its width will actually draw.
+
+	SETW 2 * :WIDTH  ; NOTE: This is the input not the Logo command!
+
+	MAKE "OLDMODE GPROP :CURRENT.GRAPHICS "WRAPMODE
+	MAKE "OLDPEN PEN
+	MAKE "OLDPOS POS
+
+; Brute force method of drawing a border ... run the turtle into the
+; walls and turn right; you'd expect the turtle to be inside the fence.
+
+	FENCE PU HOME
+	FD 10000 RT 90 		; top edge point right
+	FD 10000 RT 90		; upper right corner pointing down
+	PD
+	FD 10000 RT 90 		; lower right corner pointing left
+	FD 10000 RT 90		; lower left corner pointing up
+	FD 10000 RT 90		; upper left corner pointing right
+	FD 10000 RT 90		; back to the upper right and all done
+	PU
+
+; Restore the turtle, the pen and the wrapmode
+
+	SETPOS :OLDPOS
+	RUN (LIST :OLDPEN)
+	SETHEADING :OLDHEADING
+	SETW :OLDWIDTH
+	PPROP :CURRENT.GRAPHICS "WRAPMODE :OLDMODE
+END
+
+BURY [BORDER]
+
+TO MAIN
+	SET.THE.TABLE
+	DEMO
+END
+
+TO ABOUT
+	IGNORE ALERT `Ricochet Play takes advantage of the BOUNCE mode of the Graphics Window.`
+END
+	
+MAIN

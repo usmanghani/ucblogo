@@ -60,6 +60,11 @@ export function registerArrays(ev: Evaluator): void {
       if (idx < 1 || idx > args[1].items.length) throw badInput('ITEM', args[0])
       return args[1].items[idx - 1]
     }
+    if (typeof args[1] === 'string' || typeof args[1] === 'number') {
+      const chars = String(args[1])
+      if (idx < 1 || idx > chars.length) throw badInput('ITEM', args[0])
+      return chars[idx - 1]
+    }
     throw badInput('ITEM', args[1])
   })
 

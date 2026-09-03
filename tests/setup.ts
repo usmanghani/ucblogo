@@ -26,6 +26,11 @@ function createMockCtx() {
     save: vi.fn(),
     restore: vi.fn(),
     fillText: vi.fn(),
+    strokeRect: vi.fn(),
+    rect: vi.fn(),
+    ellipse: vi.fn(),
+    measureText: vi.fn(() => ({ width: 0 })),
+    globalCompositeOperation: 'source-over',
   }
 }
 

@@ -56,7 +56,7 @@ describe('evaluator', () => {
   })
 
   it('handles FOR loops', () => {
-    ctx.interp.run('FOR "I 1 3 [PRINT :I]')
+    ctx.interp.run('FOR [I 1 3] [PRINT :I]')
     expect(ctx.output.join('')).toBe('1\n2\n3\n')
   })
 

@@ -1,0 +1,21 @@
+TO MAIN
+	DRAW
+	CT
+	PRINT "|Hermann Grid: Do you see dark spots at the intersections?|
+	PRINT "|There are none! It's an optical illusion! The image is a |
+	PRINT "|blowup of background pattern 7 that creates the grid.|
+	FOREVER [RANDOM.HERMANN.GRID WAIT 5000 DRAW]
+END
+
+TO RANDOM.HERMANN.GRID
+	CLEAN SETBG PICK [0 1 2 3 4 5 6 8 9 12 13]	; Not all colors work well
+	SETBGPATTERN 7
+	TELL 0 HT
+	MAKE "HERMANN SNAP 29 21
+	TELL :HERMANN
+	MAKE "SIZE 2
+	ST
+	REPEAT 7 [SETTS :SIZE MAKE "SIZE :SIZE + 2 WAIT 100]
+END
+
+MAIN

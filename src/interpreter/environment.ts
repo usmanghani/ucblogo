@@ -9,6 +9,7 @@
  */
 
 import type { LogoProc, LogoValue } from './types'
+import { LogoList } from './types'
 import { LogoError } from './errors'
 
 export class Environment {
@@ -57,6 +58,19 @@ export class Environment {
     return false
   }
 
+  /** Assign to an existing binding up the chain, else create a global (MAKE). */
+  assign(name: string, value: LogoValue): void {
+    let env: Environment | null = this
+    while (env) {
+      if (env.vars.has(name)) {
+        env.vars.set(name, value)
+        return
+      }
+      env = env.parent
+    }
+    this.setGlobal(name, value)
+  }
+
   /** Set a variable in the global (root) environment. */
   setGlobal(name: string, value: LogoValue): void {
     let env: Environment | null = this
@@ -78,8 +92,12 @@ export class Environment {
 
   // --- Procedure storage (global) ---
 
+  /** Incremented whenever the set of procedures changes (invalidates parse caches). */
+  static procGen = 0
+
   static setProc(name: string, proc: LogoProc): void {
     Environment.procs.set(name.toUpperCase(), proc)
+    Environment.procGen++
   }
 
   static getProc(name: string): LogoProc | undefined {
@@ -92,6 +110,7 @@ export class Environment {
 
   static eraseProc(name: string): void {
     Environment.procs.delete(name.toUpperCase())
+    Environment.procGen++
   }
 
   static allProcs(): LogoProc[] {
@@ -100,14 +119,15 @@ export class Environment {
 
   static clearProcs(): void {
     Environment.procs.clear()
+    Environment.procGen++
   }
 
   // --- Property lists (global) ---
 
   static getProp(plist: string, prop: string): LogoValue {
     const pl = Environment.props.get(plist.toUpperCase())
-    if (!pl) return ''
-    return pl.get(prop.toUpperCase()) ?? ''
+    if (!pl) return new LogoList([])
+    return pl.get(prop.toUpperCase()) ?? new LogoList([])
   }
 
   static setProp(plist: string, prop: string, value: LogoValue): void {

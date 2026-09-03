@@ -1,5 +1,5 @@
 import type { TurtleState } from '../turtle/Turtle'
-import { LOGO_COLORS } from '../turtle/Turtle'
+import { colorToCss, type LogoColor } from '../turtle/Turtle'
 
 interface StatusBarProps {
   state: TurtleState | null
@@ -28,6 +28,6 @@ function format(n: number): string {
   return n.toFixed(1)
 }
 
-function getLogoColor(index: number): string {
-  return LOGO_COLORS[index] ?? '#000000'
+function getLogoColor(c: LogoColor): string {
+  return colorToCss(c)
 }

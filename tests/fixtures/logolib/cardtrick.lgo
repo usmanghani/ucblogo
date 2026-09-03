@@ -1,0 +1,317 @@
+; This is a simple card trick where 21 cards are dealt into 3 columns
+; of 7 cards each. The user picks a card and tells the computer which
+; column the card is in. After a series of redeals, the computer displays
+; the user's card without ever knowing which card it is -- just the column
+; that it appears in with each redeal.
+
+; I made 'stagnant' displays of 3 columns
+; Start out with invisible cards
+; Shuffle cards
+; Show them, let user pick a column
+; Make cards invisible, rearrange them, then show them again.
+; Then magnify the user's card as was done in the orinal progam
+; Do alert to play again or quit
+
+; REVERSE outputs a word or list in reverse order
+
+TO REVERSE :WORL
+	IF EMPTY? :WORL OUTPUT :WORL
+	IF WORD? :WORL \
+		THEN OUTPUT REVERSE.HELPER :WORL " \
+		ELSE OUTPUT REVERSE.HELPER :WORL []
+END
+
+TO REVERSE.HELPER :WORL :RESULT
+	IF EMPTY? :WORL [OUTPUT :RESULT]
+	OUTPUT REVERSE.HELPER BUTFIRST :WORL FPUT FIRST :WORL :RESULT
+END
+
+BURY [REVERSE REVERSE.HELPER]
+
+; Output a new word or list with a specific item removed
+
+TO REMOVE.ITEM :N :WL
+	IF OR (.LT :N 1) (.GT :N COUNT :WL) [
+		(THROW "REMOVE.ITEM WORD "|REMOVE.ITEM needs a number between 1 and | COUNT :WL)
+	]
+	OUTPUT REMOVE.ITEM2 :N :WL
+END
+
+TO REMOVE.ITEM2 :N :WL
+	IF EQUAL? :N 1 [OUTPUT BUTFIRST :WL]
+	OUTPUT FPUT FIRST :WL REMOVE.ITEM2 (:N - 1) BUTFIRST :WL
+END
+
+BURY [REMOVE.ITEM REMOVE.ITEM2]
+
+; Output a list with elements randomly arranged
+
+;LIBLOAD "REMOVEITEM
+
+TO SHUFFLE :DECK
+	LOCAL "X
+	IF EMPTY? :DECK THEN OUTPUT :DECK
+	MAKE "X RANDOM COUNT :DECK
+	OUTPUT FPUT ITEM :X :DECK SHUFFLE REMOVE.ITEM :X :DECK
+END
+
+BURY [SHUFFLE]
+
+TO START.TRICK
+	DRAW CLEARTEXT
+	MAKE "HAND.SIZE 21
+	MAKE "DEAL.DELAY 1000
+	MAKE "COLLECT.DELAY 400
+	MAKE "MOVE.DELAY 200
+	MAKE "MAX.ROUNDS 4
+	MAKE "SUITS [C D H S]
+	MAKE "RANKS [A 2 3 4 5 6 7 8 9 10 J Q K]
+	MAKE "RANK.NAMES [A ACE 2 TWO 3 THREE 4 FOUR 5 FIVE 6 SIX 7 SEVEN 8 EIGHT 9 NINE 10 TEN J JACK Q QUEEN K KING]
+	MAKE "SUIT.NAMES [C CLUBS D DIAMONDS H HEARTS S SPADES]
+	MAKE "ROWINC 30
+	MAKE "COLINC 90
+	MAKE "ANCHORXY [-90 138]
+	MAKE "DECKXY [-90 -140]
+	MAKE "COLUMN1 []
+	MAKE "COLUMN2 []
+	MAKE "COLUMN3 []
+	MAKE "MESSAGE0 "|Prepare to be amazed!|
+	MAKE "MESSAGE1 "|Pick a card, any card, then click any where in the column that contains your card.|
+	MAKE "MESSAGE2 "|Click any where in the column that contains your card now.|
+	MAKE "MESSAGE3 "|One more time. Click any where in the column that contains your card.|
+	MAKE "SEQUENCE []
+	MAKE "DECK SHUFFLE NEWDECK
+	CLEARTEXT CLEARSCREEN HIDETURTLE 
+	PPROP "LOGO.ENV "LAYOUT "MINIMAL
+	FULLSCREEN
+	SETBG "FORESTGREEN
+
+; For WebLogo, I have to save the cardback name because it is re-created for each hand
+; so that the cardback is on top of the stack.
+
+	MAKE "SELECTED.CARDBACK WORD "BACK RANDOM 8
+
+	DECLARE "TURTLE "CARDBACK
+	ASK "CARDBACK [LOADSHAPE WORD "~HOME/TOOLBOX/CARDS/ :SELECTED.CARDBACK]
+	ASK "CARDBACK [PU LOCKSHAPE SETXY :DECKXY ST]
+
+	DECLARE "STATICTEXT "INSTRUCT
+	PPROPS "INSTRUCT [
+		SIZE [150 80]
+		POSITION [30 -140]
+
+	]
+	PPROP "INSTRUCT "FONT SE BL GPROP "INSTRUCT "FONT 1
+
+	PPROP "INSTRUCT "TEXT :MESSAGE0
+
+	CREATE.CARDS :DECK
+
+	MAKE.HAND
+	MAKE "ROUND.NUMBER 1
+	PLAY.TRICK
+END
+
+; Create the card TURTLE objects
+
+TO CREATE.CARDS :DECK
+	FOREACH :DECK [
+		DECLARE "TURTLE "?
+		ASK "? [PU HT LOCKSHAPE SETXY :DECKXY LOADSHAPE WORD "|~home/toolbox/cards/| "?]
+	]
+END
+
+; Output a complete list of card names
+
+TO NEWDECK
+	(LOCAL "DECK "SUIT "RANK)
+	MAKE "DECK []
+	FOR "SUIT 1 4 [
+		FOR "RANK 1 13 [
+			MAKE "DECK LPUT WORD (ITEM :SUIT :SUITS) (ITEM :RANK :RANKS) :DECK
+		]
+	]
+	OUTPUT :DECK
+END
+
+TO MAKE.HAND
+	MAKE "DECK SHUFFLE :DECK
+	MAKE "HAND []
+	REPEAT :HAND.SIZE [
+		MAKE "HAND LPUT FIRST :DECK :HAND
+		MAKE "DECK BUTFIRST :DECK
+	]
+	FOREACH :HAND [PPROP "? "VISIBLE "TRUE]
+END
+
+TO PLAY.TRICK
+	DEAL.HAND
+	GET.COLUMN
+END
+
+; For WebLogo, the cards have to be 're-created' each time so that the 'z.order' will be correct.
+; The newest item is on top which is the reverse of what I need for the card columns.
+; So, I create the cards in the :HAND keeping them all invisible at the 'deck' location.
+
+TO DEAL.HAND
+	FOREACH :HAND [ERASE "?]
+	FOREACH :HAND [
+		DECLARE "TURTLE "?
+		ASK "? [PU HT LOCKSHAPE SETXY :DECKXY LOADSHAPE WORD "|~home/toolbox/cards/| "?]
+	]
+
+	ERASE "CARDBACK
+	DECLARE "TURTLE "CARDBACK
+	ASK "CARDBACK [LOADSHAPE WORD "~HOME/TOOLBOX/CARDS/ :SELECTED.CARDBACK]
+;	ASK "CARDBACK [LOADSHAPE "|~HOME/TOOLBOX/CARDS/BACK7|] ; Terrapin Logo back
+	ASK "CARDBACK [PU LOCKSHAPE SETXY :DECKXY ST]
+
+	TELL :HAND ST
+
+	MAKE "COLUMN1 []
+	MAKE "COLUMN2 []
+	MAKE "COLUMN3 []
+	(LOCAL "ROW "COL "TOPCARD)
+	WAIT :DEAL.DELAY
+	FOR "ROW 0 6 [
+		FOR "COL 0 2 [
+			MAKE "TOPCARD FIRST :HAND
+			MAKE "HAND BUTFIRST :HAND
+			MAKE WORD "COLUMN (:COL + 1) LPUT :TOPCARD THING WORD "COLUMN (:COL + 1)
+			WEB.MOVE :TOPCARD LIST :DECKXY NEXTXY "FALSE
+		]
+	]
+	FOREACH :COLUMN1 [PPROP "? "RUN [MAKE "SEQUENCE PICK [[COLUMN2 COLUMN1 COLUMN3] [COLUMN3 COLUMN1 COLUMN2]] COLLECT.CARDS]]
+	FOREACH :COLUMN2 [PPROP "? "RUN [MAKE "SEQUENCE PICK [[COLUMN1 COLUMN2 COLUMN3] [COLUMN3 COLUMN2 COLUMN1]] COLLECT.CARDS]]
+	FOREACH :COLUMN3 [PPROP "? "RUN [MAKE "SEQUENCE PICK [[COLUMN1 COLUMN3 COLUMN2] [COLUMN2 COLUMN3 COLUMN1]] COLLECT.CARDS]]
+END
+
+TO NEXTXY
+	OUTPUT LIST ((FIRST :ANCHORXY) + (:COLINC * :COL)) ((LAST :ANCHORXY) - (:ROWINC * :ROW))
+END
+
+TO GET.COLUMN
+	PPROP "INSTRUCT "TEXT THING WORD "MESSAGE :ROUND.NUMBER
+	PPROP "INSTRUCT "VISIBLE "TRUE
+END
+
+TO COLLECT.CARDS
+	FOREACH (SE :COLUMN1 :COLUMN2 :COLUMN3) [PPROP "? "RUN []]
+	PPROP "INSTRUCT "VISIBLE "FALSE
+	REMAKE.HAND
+	MAKE "ROUND.NUMBER :ROUND.NUMBER + 1
+	IF EQUAL? :ROUND.NUMBER :MAX.ROUNDS THEN END.GAME ELSE PLAY.TRICK
+END
+
+TO REMAKE.HAND
+	FOREACH :SEQUENCE [
+		MAKE "HAND SENTENCE :HAND THING "?
+		MOVE.CARDS THING "?
+		WAIT :COLLECT.DELAY
+	]
+END
+
+TO MOVE.CARDS :COLUMN
+	FOREACH REVERSE :COLUMN [
+		ASK "? [WEB.MOVE "? (LIST ASK "? [GETXY] :DECKXY) "FALSE]
+	]
+END
+
+; for weblogo, if you don't want to play again, just THROW "TOPLEVEL
+
+TO END.GAME
+	FOREACH :HAND [PPROP "? "RUN []]
+	(LOCAL "SECRET "ANSWER)
+	MAKE "SECRET ITEM 11 :HAND
+	MAKE "DECK SHUFFLE SENTENCE :DECK :HAND
+	MAKE "HAND []
+	WHILE [NOT EQUAL? ASK :SECRET [GETXY] :DECKXY] [] 
+	ASK :SECRET [SETXY [0 40] SETTSIZE 2.5]
+	WAIT 4000
+	MAKE "ANSWER (ALERT "|Want to play again?| "YES "NO)
+	ASK :SECRET [SETXY :DECKXY SETTSIZE 1]
+	IF EQUAL? :ANSWER "YES [
+		MAKE "ROUND.NUMBER 1
+		MAKE "SELECTED.CARDBACK WORD "BACK RANDOM 8
+		MAKE.HAND
+		PLAY.TRICK
+	][
+		52PICKUP
+		THROW "TOPLEVEL
+	]
+END
+
+; Translate card name to text message
+
+TO CARD.TEXT :CARD
+	OUTPUT LOWERCASE (WORD RANK.NAME :CARD "| of | SUIT.NAME :CARD)
+END
+
+TO CARD.RANK :CARD
+	OUTPUT BUTFIRST :CARD
+END
+
+TO CARD.SUIT :CARD
+	OUTPUT FIRST :CARD
+END
+
+TO SUIT.NAME :CARD
+	OUTPUT FIRST BUTFIRST FROMMEMBER CARD.SUIT :CARD :SUIT.NAMES
+END
+
+TO RANK.NAME :CARD
+	OUTPUT FIRST BUTFIRST FROMMEMBER CARD.RANK :CARD :RANK.NAMES
+END
+
+; Another simple game?
+
+TO 52PICKUP
+	(LOCAL "X "Y "CARD.WIDTH.ADJ "CARD.HEIGHT.ADJ)
+	MAKE "CARD.WIDTH.ADJ INT .5 * FIRST GPROP "CARDBACK "SIZE
+	MAKE "CARD.HEIGHT.ADJ INT .5 * LAST GPROP "CARDBACK "SIZE
+	RERANDOM ((ITEM 1 TIME) * 3600) + ((ITEM 2 TIME) * 60) + (ITEM 3 TIME) 
+	ASK "CARDBACK [HT]
+	FOREACH :DECK [
+		ASK "? [
+			ST 
+			MAKE "X ((RANDOM FIRST BOUNDS) - :CARD.WIDTH.ADJ) * (PICK [1 -1])
+			MAKE "Y ((RANDOM LAST BOUNDS) - :CARD.HEIGHT.ADJ) * (PICK [1 -1])
+			SETXY LIST :X :Y
+			UNLOCKSHAPE SETH RANDOM 360
+		]
+	]
+END
+
+TO ABOUT
+	(LOCAL "LF "PP "SAMPLE.TEXT "P1 "P2 "P3 "P4 "P5 "P6 "P7 "P8 "P9 "P10)
+	MAKE "LF CHAR 10
+	MAKE "PP WORD :LF :LF
+	MAKE "P1 `As long as you honestly identify the column that contains your card, `
+	MAKE "P2 `this trick will never fail to find your card. Hard to believe? `
+	MAKE "P3 `A hint for trying to figure out how it works is to carefully watch `
+	MAKE "P4 `how the cards are collected for each redeal. `
+	MAKE "P5 `Another hint: The trick requires an odd number of cards divisible by `
+	MAKE "P6 `three. Try it with 9 cards yourself, then 15 cards. This program `
+	MAKE "P7 `uses 21 cards which makes the trick quite impressive. `
+
+	MAKE "SAMPLE.TEXT (WORD :P1 :P2 :PP :P3 :P4 :PP :P5 :P6 :P7)
+	IGNORE ALERT :SAMPLE.TEXT
+END
+
+TO WEB.MOVE :OBJECT :PATH :FOREVER?
+	(LINEAR.MOVE :OBJECT FIRST :PATH LAST :PATH 10 5) 
+END
+
+TO LINEAR.MOVE :OBJECT :A :B :N [:DELAY 50] 4
+	ASK :OBJECT [SETXY :A SETH TOWARDS :B]
+	LOCAL "INC
+	ASK :OBJECT [MAKE "INC INT ((DISTANCE :B) / :N)] 
+	REPEAT :N [ASK :OBJECT [FD :INC WAIT :DELAY]]
+	ASK :OBJECT [SETXY :B]
+END
+
+TO MAIN
+START.TRICK
+END
+
+MAIN

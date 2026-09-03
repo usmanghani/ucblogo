@@ -3,6 +3,7 @@
  */
 
 import type { Evaluator, EvalContext } from '../evaluator'
+import { truthy } from '../evaluator'
 import type { LogoValue } from '../types'
 import { LogoList, isList, isWord, isNumber } from '../types'
 import { badInput } from '../errors'
@@ -79,9 +80,9 @@ export function registerHigherOrder(ev: Evaluator, ctx: EvalContext): void {
   })
 
   reg('FOREACH', 2, 2, (args) => {
-    const template = args[0]
-    const data = args[1]
-    if (!isList(data)) throw badInput('FOREACH', data)
+    // FOREACH data template (UCBLogo / Terrapin order).
+    const data = isList(args[0]) ? args[0] : new LogoList(isWord(args[0]) ? args[0].split('') : [args[0]])
+    const template = args[1]
     for (const item of data.items) {
       applyTemplate(ev, ctx, template, [item])
     }
@@ -245,17 +246,11 @@ function applyTemplate(ev: Evaluator, ctx: EvalContext, template: LogoValue, arg
     for (let i = 0; i < args.length; i++) {
       newEnv.set(`?${i + 1}`, args[i])
     }
-    return ev.evalTemplate(template.items, newEnv)
+    return ev.evalTemplateWith(template.items, newEnv, args)
   }
   throw badInput('MAP', template)
 }
 
-function truthy(v: LogoValue): boolean {
-  if (isWord(v)) return v !== '' && v !== 'FALSE' && v !== 'false'
-  if (isNumber(v)) return v !== 0
-  if (isList(v)) return !v.isEmpty()
-  return v !== null
-}
 
 function nodeToString(node: unknown): string {
   const n = node as { type: string; value?: unknown; name?: string }

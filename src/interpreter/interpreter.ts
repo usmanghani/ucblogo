@@ -13,10 +13,22 @@ import type { Turtle } from '../turtle/Turtle'
 import type { VirtualFS } from '../filesystem/VirtualFS'
 import { toLogoString } from './types'
 
+/** Human-readable error text including the source location when known. */
+export function formatError(e: LogoError): string {
+  let where = ''
+  if (e.line !== undefined) where += ` at line ${e.line}`
+  if (e.procName) where += ` in ${e.procName}`
+  return `Error: ${e.message}${where}`
+}
+
 export interface InterpreterOptions {
   turtle?: Turtle
   fs?: VirtualFS
   onOutput?: (text: string) => void
+  /** Called by CT / CLEARTEXT. */
+  onClearText?: () => void
+  /** Line input for READ / READLIST / READWORD (undefined = no input). */
+  readLine?: () => string | undefined
 }
 
 export class Interpreter {
@@ -25,8 +37,10 @@ export class Interpreter {
   turtle?: Turtle
   fs?: VirtualFS
   private onOutput?: (text: string) => void
+  private options: InterpreterOptions
 
   constructor(options: InterpreterOptions = {}) {
+    this.options = options
     this.env = Environment.global()
     this.turtle = options.turtle
     this.fs = options.fs
@@ -38,25 +52,48 @@ export class Interpreter {
       fs: this.fs,
       output: (s) => this.onOutput?.(s),
       stop: () => {},
+      clearText: () => this.options.onClearText?.(),
+      readLine: this.options.readLine,
     }
     this.evaluator = new Evaluator(ctx)
     registerAll(this.evaluator, ctx)
   }
 
-  /** Run a full Logo program. Returns the final value. */
+  /** Last error raised by run(), or null if the last run succeeded. */
+  lastError: LogoError | null = null
+
+  /** Run a full Logo program. Returns the final value; errors are printed. */
   run(source: string): string {
-    const tokens = tokenize(source)
-    const ast = parse(tokens, this.evaluator)
     try {
-      const result = this.evaluator.runProgram(ast, this.env)
-      return toLogoString(result)
+      return this.runOrThrow(source)
     } catch (e) {
       if (e instanceof LogoError) {
-        this.onOutput?.(`${e.message}\n`)
+        this.onOutput?.(`${formatError(e)}\n`)
         return ''
       }
       throw e
     }
+  }
+
+  /** Run a full Logo program, throwing LogoError on failure. */
+  runOrThrow(source: string): string {
+    this.lastError = null
+    this.evaluator.steps = 0
+    this.evaluator.abortRequested = false
+    try {
+      const tokens = tokenize(source)
+      const ast = parse(tokens, this.evaluator)
+      const result = this.evaluator.runProgram(ast, this.env)
+      return toLogoString(result)
+    } catch (e) {
+      if (e instanceof LogoError) this.lastError = e
+      throw e
+    }
+  }
+
+  /** Request that the currently running program stop at the next step. */
+  requestStop(): void {
+    this.evaluator.abortRequested = true
   }
 
   /** Evaluate a single line (for the REPL). */
@@ -85,6 +122,8 @@ export class Interpreter {
       fs: this.fs,
       output: (s) => this.onOutput?.(s),
       stop: () => {},
+      clearText: () => this.options.onClearText?.(),
+      readLine: this.options.readLine,
     }
     this.evaluator = new Evaluator(ctx)
     registerAll(this.evaluator, ctx)

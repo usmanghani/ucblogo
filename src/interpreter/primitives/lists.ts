@@ -92,7 +92,7 @@ export function registerLists(ev: Evaluator): void {
   reg('ITEM', 2, 2, (args) => {
     const idx = args[0]
     if (!isNumber(idx)) throw badInput('ITEM', idx)
-    const items = seq(args[1], 'ITEM')
+    const items = isWord(args[1]) ? args[1].split('') : seq(args[1], 'ITEM')
     const i = Math.trunc(idx)
     if (i < 1 || i > items.length) throw badInput('ITEM', idx)
     return items[i - 1]
@@ -112,7 +112,7 @@ export function registerLists(ev: Evaluator): void {
     throw badInput('LPUT', v)
   })
 
-  reg('SENTENCE', 2, 99, (args) => {
+  reg('SENTENCE', 0, 99, (args) => {
     const items: LogoValue[] = []
     for (const a of args) {
       if (isList(a)) items.push(...a.items)
@@ -120,7 +120,7 @@ export function registerLists(ev: Evaluator): void {
     }
     return new LogoList(items)
   })
-  reg('SE', 2, 99, (args) => {
+  reg('SE', 0, 99, (args) => {
     const items: LogoValue[] = []
     for (const a of args) {
       if (isList(a)) items.push(...a.items)
@@ -129,7 +129,7 @@ export function registerLists(ev: Evaluator): void {
     return new LogoList(items)
   })
 
-  reg('LIST', 2, 99, (args) => new LogoList(args.slice()))
+  reg('LIST', 0, 99, (args) => new LogoList(args.slice()))
 
   reg('REVERSE', 1, 1, (args) => {
     const v = args[0]
@@ -143,6 +143,7 @@ export function registerLists(ev: Evaluator): void {
     if (isList(v)) return v.length
     if (isWord(v)) return v.length
     if (isArray(v)) return v.length
+    if (typeof v === 'number') return String(v).length
     throw badInput('COUNT', v)
   })
 

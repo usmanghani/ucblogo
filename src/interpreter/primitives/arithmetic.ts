@@ -3,8 +3,9 @@
  */
 
 import type { Evaluator, EvalContext } from '../evaluator'
+import {  truthy } from '../evaluator'
 import type { LogoValue } from '../types'
-import { isNumber, isWord, isList, isArray, logoEqual } from '../types'
+import {isNumber, isWord, logoEqual } from '../types'
 import { LogoError, badInput } from '../errors'
 
 function num(v: LogoValue, name: string): number {
@@ -127,10 +128,3 @@ export function registerArithmetic(ev: Evaluator, _ctx: EvalContext): void {
   reg('RSHIFT', 2, 2, (args) => int(args[0], 'RSHIFT') >> int(args[1], 'RSHIFT'))
 }
 
-function truthy(v: LogoValue): boolean {
-  if (isWord(v)) return v !== '' && v !== 'FALSE' && v !== 'false'
-  if (isNumber(v)) return v !== 0
-  if (isList(v)) return !v.isEmpty()
-  if (isArray(v)) return v.length > 0
-  return v !== null
-}

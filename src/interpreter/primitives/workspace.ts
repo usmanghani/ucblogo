@@ -15,13 +15,13 @@ export function registerWorkspace(ev: Evaluator, ctx: EvalContext): void {
 
   reg('MAKE', 2, 2, (args) => {
     const name = String(args[0]).toUpperCase()
-    ctx.env.setGlobal(name, args[1])
+    ctx.env.assign(name, args[1])
     return ''
   })
 
   reg('NAME', 2, 2, (args) => {
     const name = String(args[1]).toUpperCase()
-    ctx.env.setGlobal(name, args[0])
+    ctx.env.assign(name, args[0])
     return ''
   })
 
@@ -30,15 +30,18 @@ export function registerWorkspace(ev: Evaluator, ctx: EvalContext): void {
     return ctx.env.get(name)
   })
 
+  const names = (v: LogoValue): string[] => (v instanceof LogoList ? v.items.flatMap(names) : [String(v).toUpperCase()])
+
   reg('ERASE', 1, 1, (args) => {
-    const name = String(args[0]).toUpperCase()
-    ctx.env.erase(name)
-    Environment.eraseProc(name)
+    for (const name of names(args[0])) {
+      ctx.env.erase(name)
+      Environment.eraseProc(name)
+    }
     return ''
   })
 
   reg('BURY', 1, 1, (args) => {
-    Environment.bury(String(args[0]))
+    for (const name of names(args[0])) Environment.bury(name)
     return ''
   })
 

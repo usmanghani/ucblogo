@@ -12,6 +12,7 @@ import { registerWorkspace } from './workspace'
 import { registerArrays } from './arrays'
 import { registerProperties } from './properties'
 import { registerMisc } from './misc'
+import { registerTerrapin } from './terrapin'
 
 export function registerAll(ev: Evaluator, ctx: EvalContext): void {
   registerArithmetic(ev, ctx)
@@ -25,4 +26,5 @@ export function registerAll(ev: Evaluator, ctx: EvalContext): void {
   registerArrays(ev)
   registerProperties(ev)
   registerMisc(ev, ctx)
+  registerTerrapin(ev, ctx)
 }

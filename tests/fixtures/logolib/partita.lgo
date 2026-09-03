@@ -1,0 +1,66 @@
+TO PARTITA
+    PLAY [R T200]
+    ONE
+    TWO
+    THREE
+END
+
+TO ONE
+    PLAY [L8 E D#]
+    PLAY [L4 E OB B G# B]
+    PLAY [L8 E F# E D#]
+    PLAY [L4 E OB B G# B]
+    REPEAT 2 [PLAY [L8 E B F# B G# B A B G# B F# B E O# E D# C# OB B O# E D# C# OB B A G# F#]]
+    PLAY [E F# G# A B O# C# D# E F# G# A F#]
+    PLAY [G# B E F# G# A B O# C# D# E C# D#]
+    PLAY [E OB B A B G# B A B G# B F# B]
+    PLAY [E O# E D# C# OB B E O# C# OB E B E A E]
+    PLAY [G# B F# B G# B A B G# B F# B]
+    PLAY [E O# E D# C# OB B E O# C# OB E B E A E]
+    REPEAT 2 [PLAY [G# E E E D# E E E F# E D# E E E G# E F# E G# E A E F# E]]
+END
+
+TO TWO
+    REPEAT 3 [PLAY [G# E G# E]]
+    REPEAT 3 [PLAY [G# E G# D#]]
+    REPEAT 3 [PLAY [G# E G# D]]
+    REPEAT 3 [PLAY [A E A C#]]
+    PLAY [A E A OB B]
+    REPEAT 2 [PLAY [O# A E A OB B]]
+    REPEAT 3 [PLAY [O# G# E G# OB B]]
+    REPEAT 3 [PLAY [O# G# E G# OB A]]
+    REPEAT 3 [PLAY [O# F# E F# OB A]]
+    REPEAT 3 [PLAY [O# F# E F# OB G#]]
+    REPEAT 3 [PLAY [O# E E E OB G#]]
+    REPEAT 3 [PLAY [O# E E E OB F#]]
+    REPEAT 3 [PLAY [O# D# E D# OB F#]]
+END
+
+TO THREE
+    PLAY [E F# E F# G# B E F# G# B E F#]
+    PLAY [G# A G# A B O# E OB G# A B O# E OB G# A]
+    PLAY [B O# C# OB B O# C# D G# OB B O# C# D G# OB B O# C#]
+    PLAY [D B G# E D OB B G# E D C# D OB B]
+    PLAY [O# C# D# C# D# F G# C# D# F G# C# D#]
+    PLAY [F F# F F# G# O# C# OB F F# G# O# C# OB F F#]
+    PLAY [G# A G# A B O# F OB G# A B O# F OB G# A]
+    PLAY [B O# G# F C# B G# A F# F G# C# OB B]
+    PLAY [A O# C# OB A F# O# F# D# E C# C D# OB G# F#]
+    PLAY [E G# E C# E G# O# C# OB G# O# E C# G# C#]
+    PLAY [C D# C OB G# O# G# G G# G G# D# E C#]
+    PLAY [C D# C OB G# O# F# F F# F F# D# E C#]
+    PLAY [C D# C OB G# A G# A G# A D# E C#]
+    PLAY [C F# C# F# D# F# C# F# C F# D# F#]
+    PLAY [OB G# O# F# O# D# OB F# O# C OB F# O# D# OB F# O# C OB F# O# D# OB F#]
+    PLAY [OB G# O# E O# C# OB E O# E OB E O# C# OB E O# E OB E O# C# OB E]
+    PLAY [OB G# O# F# O# D# OB F# O# C OB F# O# D# OB F# O# C OB F# O# D# OB F#]
+    PLAY [OB G# O# E O# C# OB E O# E OB E O# C# OB E O# E OB E O# C# OB E]
+    REPEAT 2 [PLAY [OB G# O# G O# C# OB G O# E OB G O# C# OB G O# E OB G O# C# OB G]]
+    PLAY [OB G# O# G# O# C# OB G# O# D# OB G# O# C# OB G# O# D# OB G# O# C# OB G#]
+    PLAY [OB G# O# F# O# C OB F# O# D# OB F# O# C OB F# O# D# OB F# O# C OB F#]
+    PLAY [L1 C# R]
+END
+
+CLEARTEXT
+PRINT `The procedures in this file will play "Partita in E" by Bach.`
+PRINT `To hear it, type PARTITA.`

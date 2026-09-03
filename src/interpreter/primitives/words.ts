@@ -12,6 +12,8 @@ import { parse } from '../parser'
 function word(v: LogoValue, name: string): string {
   if (isWord(v)) return v
   if (isNumber(v)) return formatNumber(v)
+  if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE'
+  if (v instanceof LogoList && v.items.length === 0) return ''
   throw badInput(name, v)
 }
 
@@ -21,7 +23,7 @@ export function registerWords(ev: Evaluator): void {
     ev.registerPrimitive({ name, minArgs, maxArgs, fn: (args) => fn(args) })
   }
 
-  reg('WORD', 2, 99, (args) => args.map((a) => word(a, 'WORD')).join(''))
+  reg('WORD', 0, 99, (args) => args.map((a) => word(a, 'WORD')).join(''))
 
   reg('CHAR', 1, 1, (args) => {
     const n = args[0]

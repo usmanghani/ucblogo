@@ -7,16 +7,47 @@ import type { LogoValue } from '../types'
 import { isNumber, isList, LogoList, toLogoString } from '../types'
 import { badInput } from '../errors'
 import type { Turtle } from '../../turtle/Turtle'
-import { LOGO_COLORS } from '../../turtle/Turtle'
+import { LOGO_COLORS, type LogoColor } from '../../turtle/Turtle'
+import { isColorName, rgbToCss } from '../../turtle/colors'
 
 function num(v: LogoValue, name: string): number {
   if (isNumber(v)) return v
+  if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) return Number(v)
   throw badInput(name, v)
+}
+
+/** Parse a colour input: palette index, colour name, or [r g b] list. */
+export function parseColor(v: LogoValue, name: string): LogoColor {
+  if (isNumber(v)) return v
+  if (typeof v === 'string') {
+    if (v.trim() !== '' && !isNaN(Number(v))) return Number(v)
+    if (isColorName(v)) return v.toLowerCase()
+    if (/^#[0-9a-f]{3,8}$/i.test(v)) return v
+    throw badInput(name, v)
+  }
+  if (isList(v) && v.items.length >= 3) {
+    return rgbToCss(num(v.items[0], name), num(v.items[1], name), num(v.items[2], name))
+  }
+  throw badInput(name, v)
+}
+
+/** A pen/background colour as a Logo value (number or name / rgb list). */
+function colorValue(c: LogoColor): LogoValue {
+  if (typeof c === 'number') return c
+  const m = c.match(/^rgb\((\d+),(\d+),(\d+)\)$/)
+  if (m) return new LogoList([parseInt(m[1]), parseInt(m[2]), parseInt(m[3])])
+  return c.toUpperCase()
 }
 
 function turtle(ctx: EvalContext): Turtle {
   if (!ctx.turtle) throw new Error('Turtle graphics not available')
   return ctx.turtle as Turtle
+}
+
+/** Text of a LABEL / TT input: lists print without brackets. */
+export function labelText(v: LogoValue): string {
+  if (isList(v)) return v.items.map(toLogoString).join(' ')
+  return toLogoString(v)
 }
 
 /** Register all turtle primitives. */
@@ -35,7 +66,16 @@ export function registerTurtle(ev: Evaluator, ctx: EvalContext): void {
   reg('RIGHT', 1, 1, (args) => { turtle(ctx).right(num(args[0], 'RIGHT')); return '' })
   reg('RT', 1, 1, (args) => { turtle(ctx).right(num(args[0], 'RT')); return '' })
 
-  reg('SETXY', 2, 2, (args) => { turtle(ctx).setXY(num(args[0], 'SETXY'), num(args[1], 'SETXY')); return '' })
+  reg('SETXY.IMPL', 1, 2, (args) => {
+    const p = args[0]
+    if (args.length === 1) {
+      if (isList(p) && p.items.length >= 2) turtle(ctx).setXY(num(p.items[0], 'SETXY'), num(p.items[1], 'SETXY'))
+      else throw badInput('SETXY', p)
+      return ''
+    }
+    turtle(ctx).setXY(num(args[0], 'SETXY'), num(args[1], 'SETXY'))
+    return ''
+  })
   reg('SETPOS', 1, 1, (args) => {
     const p = args[0]
     if (isList(p) && p.items.length >= 2) {
@@ -56,31 +96,34 @@ export function registerTurtle(ev: Evaluator, ctx: EvalContext): void {
   reg('PU', 0, 0, () => { turtle(ctx).penUp(); return '' })
   reg('PENDOWN', 0, 0, () => { turtle(ctx).penDown(); return '' })
   reg('PD', 0, 0, () => { turtle(ctx).penDown(); return '' })
-  reg('SETPENCOLOR', 0, 1, (args) => {
-    const v = args[0]
-    if (v === undefined || !isNumber(v)) { turtle(ctx).cyclePenColor(); return '' }
-    turtle(ctx).setPenColor(num(v, 'SETPENCOLOR')); return ''
-  })
-  reg('SETPC', 0, 1, (args) => {
-    const v = args[0]
-    if (v === undefined || !isNumber(v)) { turtle(ctx).cyclePenColor(); return '' }
-    turtle(ctx).setPenColor(num(v, 'SETPC')); return ''
-  })
-  reg('SETBACKGROUND', 0, 1, (args) => {
-    const v = args[0]
-    if (v === undefined || !isNumber(v)) return turtle(ctx).nextCycleColor()
-    turtle(ctx).setBackground(num(v, 'SETBACKGROUND')); return ''
-  })
-  reg('SETBG', 0, 1, (args) => {
-    const v = args[0]
-    if (v === undefined || !isNumber(v)) return turtle(ctx).nextCycleColor()
-    turtle(ctx).setBackground(num(v, 'SETBG')); return ''
-  })
+  for (const n of ['SETPENCOLOR', 'SETPC']) {
+    reg(n, 0, 1, (args) => {
+      const v = args[0]
+      if (v === undefined || v === '') { turtle(ctx).cyclePenColor(); return '' }
+      turtle(ctx).setPenColor(parseColor(v, n)); return ''
+    })
+  }
+  for (const n of ['SETBACKGROUND', 'SETBG', 'SETBGCOLOR']) {
+    reg(n, 0, 1, (args) => {
+      const v = args[0]
+      if (v === undefined || v === '') return turtle(ctx).nextCycleColor()
+      turtle(ctx).setBackground(parseColor(v, n)); return ''
+    })
+  }
   reg('SETPENSIZE', 1, 1, (args) => { turtle(ctx).setPenSize(num(args[0], 'SETPENSIZE')); return '' })
   reg('SETPEN', 1, 1, (args) => {
     const p = args[0]
-    if (isList(p) && p.items.length >= 2) {
-      turtle(ctx).setPenColor(num(p.items[0], 'SETPEN'))
+    if (isList(p) && p.items.length >= 3 && typeof p.items[0] === 'string' && /^PEN/i.test(p.items[0])) {
+      // [PENDOWN|PENUP|PENERASE|PENREVERSE color width] as output by PEN.
+      const t = turtle(ctx)
+      const mode = p.items[0].toUpperCase()
+      if (mode === 'PENUP') t.penUp()
+      else t.penDown()
+      t.setPenMode(mode === 'PENERASE' ? 'ERASE' : mode === 'PENREVERSE' ? 'REVERSE' : 'PAINT')
+      t.setPenColor(parseColor(p.items[1], 'SETPEN'))
+      t.setPenSize(num(p.items[2], 'SETPEN'))
+    } else if (isList(p) && p.items.length >= 2) {
+      turtle(ctx).setPenColor(parseColor(p.items[0], 'SETPEN'))
       turtle(ctx).setPenSize(num(p.items[1], 'SETPEN'))
     } else {
       throw badInput('SETPEN', p)
@@ -109,7 +152,8 @@ export function registerTurtle(ev: Evaluator, ctx: EvalContext): void {
   reg('ST', 0, 0, () => { turtle(ctx).showTurtle(); return '' })
 
   reg('ARC', 2, 2, (args) => { turtle(ctx).arc(num(args[0], 'ARC'), num(args[1], 'ARC')); return '' })
-  reg('LABEL', 1, 1, (args) => { turtle(ctx).label(toLogoString(args[0])); return '' })
+  // LABEL is a special form (GO label marker); the text drawing lives here.
+  reg('LABEL.TEXT', 1, 1, (args) => { turtle(ctx).label(labelText(args[0])); return '' })
   reg('FILL', 0, 0, () => { turtle(ctx).fill(); return '' })
 
   // Queries
@@ -120,10 +164,10 @@ export function registerTurtle(ev: Evaluator, ctx: EvalContext): void {
   reg('XCOR', 0, 0, () => turtle(ctx).getState().x)
   reg('YCOR', 0, 0, () => turtle(ctx).getState().y)
   reg('HEADING', 0, 0, () => turtle(ctx).getState().heading)
-  reg('PENCOLOR', 0, 0, () => turtle(ctx).getState().penColor)
-  reg('PC', 0, 0, () => turtle(ctx).getState().penColor)
-  reg('BACKGROUND', 0, 0, () => turtle(ctx).getState().background)
-  reg('BG', 0, 0, () => turtle(ctx).getState().background)
+  reg('PENCOLOR', 0, 0, () => colorValue(turtle(ctx).getState().penColor))
+  reg('PC', 0, 0, () => colorValue(turtle(ctx).getState().penColor))
+  reg('BACKGROUND', 0, 0, () => colorValue(turtle(ctx).getState().background))
+  reg('BG', 0, 0, () => colorValue(turtle(ctx).getState().background))
   reg('PENSIZE', 0, 0, () => turtle(ctx).getState().penSize)
   reg('SHOWNP', 0, 0, () => turtle(ctx).getState().visible)
   reg('TURTLEP', 0, 0, () => true)

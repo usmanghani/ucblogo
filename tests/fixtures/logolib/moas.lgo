@@ -1,0 +1,49 @@
+TO MANY.TURTLES :N :LOOPS :SHOW
+	MAKE "COUNT 0
+	SETT :N
+	DRAW BOUNCE
+	TELLALL 0 :N - 1
+	EACH [
+		IF :SHOW [ST] [HT]
+		PD SETPC PICK COLORS SETW 5
+	]
+	ASK PICK WHO [SETW 73 SETPC "GOLD]
+	REPEAT :LOOPS [
+		EACH [
+			FORWARD RANDOM 20
+			SETH HEADING + (RANDOM -20 20)
+			MAKE "COUNT :COUNT + 1
+		]
+	]
+END
+
+TO MOAS :N [:LOOPS 100] [:SHOW TRUE]
+	LMAKE "START MILLISECONDS
+	MAKE "COUNT 0
+	MANY.TURTLES :N :LOOPS :SHOW
+	LMAKE "T (MILLISECONDS - :START) / 1000
+	(PR :T "SECONDS, :COUNT / :T "LOOPS/SECOND)
+END
+
+TO MAIN
+	(MOAS 300 300 FALSE)
+END
+
+TO ABOUT
+	(LOCAL "LF "PP "SAMPLE.TEXT "P1 "P2 "P3 "P4 "P5 "P6 "P7 "P8 "P9 "P10)
+	MAKE "LF CHAR 10
+	MAKE "PP WORD :LF :LF
+	MAKE "P1 "|MOAS -- The Mother of all Snakes -- A demo of using lots of turtles.|
+	MAKE "P2 "|WebLogo can have up to 1000 turtles active at the same time.|
+	MAKE "P3 "|Syntax: MOAS :N [:LOOPS 100] [:SHOW TRUE]|
+	MAKE "P4 "|:N is the number of turtles to use|
+	MAKE "P5 "|:LOOPS is the of number move cycles; optional input, default is 100|
+	MAKE "P6 "|:SHOW is TRUE to show the turtle shape; use FALSE to hide the turtles|
+	MAKE "P7 "|Example syntax: |
+	MAKE "P8 "|MOAS 300|
+	MAKE "P9 "|(MOAS 400 200 FALSE) |
+	MAKE "SAMPLE.TEXT (WORD :P1 :LF :P2 :LF :P3 :LF :P4 :LF :P5 :LF :P6 :LF :P7 :LF :P8 :LF :P9)
+	IGNORE ALERT :SAMPLE.TEXT
+END
+
+MAIN

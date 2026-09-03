@@ -123,6 +123,6 @@ describe('turtle render pipeline regression', () => {
     expect(stylesAtStrokeTime.size).toBeGreaterThanOrEqual(5)
 
     // Background untouched by the cycling form: composites keep painting white bg.
-    expect(turtle.getState().background).toBe(15)
+    expect(turtle.getState().background).toBe(7)
   })
 })

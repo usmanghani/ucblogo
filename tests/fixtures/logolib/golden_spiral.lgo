@@ -1,0 +1,74 @@
+TO GOLDEN.SPIRAL :S
+   IF .LT :S 3 [STOP] ; .lt is short for less than
+   SQUARE.ARC :S
+   GOLDEN.SPIRAL (:S / PHI)
+END
+
+TO PHI
+    OUTPUT 1.618033988749895
+END
+
+TO ARCR :RADIUS :DEGREES
+   LOCAL "STEP LOCAL "REM
+   MAKE "STEP 2 * :RADIUS * 3.14 / 36
+   MAKE "REM REMAINDER :DEGREES 10
+   REPEAT :DEGREES / 10 [RT 5 FD :STEP RT 5]
+   IF :REM > 0 [FD :STEP * :REM / 10 RT :REM]
+END
+
+TO SQUARE.ARC :S
+   PD REPEAT 4 [FD :S RT 90]
+   ARCR :S 90
+END
+
+TO DEMO
+   CLEARTEXT
+   PRINT "|Drag the boundaries of the Graphics window |
+   PRINT "|to change its size and then enter DEMO to see |
+   PRINT "|another set of Golden Spirals.|
+   DRAW HT
+   WRAP
+   MAKE "MAXX FIRST BOUNDS
+   MAKE "MAXY LAST BOUNDS
+   PU SETXY LIST ( -(:MAXX - 3)) ( -(:MAXY - 3)) PD
+   SETW 3
+
+; Draw the largest golden spiral that will fit the screen horizontally.
+; Take the screen width as (phi * n) and compute n.
+; n must not exceed the screen height
+; allow for pen width adjustment
+
+   MAKE "SCREEN.WIDTH 2 * :MAXX
+   MAKE "SCREEN.HEIGHT 2 * :MAXY
+   MAKE "N INT (:SCREEN.WIDTH / PHI) - 3
+   IF :N > :SCREEN.HEIGHT MAKE "N :SCREEN.HEIGHT - 6
+   GOLDEN.SPIRAL :N
+   SETW 1
+   REPEAT 42 [
+       PU SETX ( (PICK [-1 1]) * RANDOM :MAXX)
+       SETY ( (PICK [-1 1]) * RANDOM :MAXY)
+       SETH RANDOM 360 SETPC PICK COLORS PD
+       GOLDEN.SPIRAL RANDOM 144
+	     ]
+END
+
+TO MAIN
+   DEMO
+END
+
+TO ABOUT
+	(LOCAL "LF "PP "SAMPLE.TEXT "P1 "P2 "P3 "P4 "P5 "P6 "P7 "P8 "P9 "P10)
+	MAKE "LF CHAR 10
+	MAKE "PP WORD :LF :LF
+	MAKE "P1 "|This demo draws the maximum sized Golden Spiral that will fit |
+	MAKE "P2 "|in the Graphics window and then draws a bunch of other Golden |
+	MAKE "P3 "|Spirals of random size at random locations in random colors |
+	MAKE "P4 "|in random orientations. |
+	MAKE "P5 "|The Golden Ratio, or phi, is approximately 1.618033988749895 |
+	MAKE "P6 "|and its inverse is, surprisingly, equal to its frational part.|
+	MAKE "P7 "|Interestingly, phi can be approximated by the ratio of neighboring Fibonacci numbers.|
+	MAKE "SAMPLE.TEXT (WORD :P1 :P2 :P3 :P4 :PP :P5 :P6 :PP :P7)
+	IGNORE ALERT :SAMPLE.TEXT
+END
+
+MAIN
