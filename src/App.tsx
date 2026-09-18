@@ -4,6 +4,7 @@ import type { LogoError } from './interpreter/errors'
 import { Turtle, type TurtleState } from './turtle/Turtle'
 import { VirtualFS } from './filesystem/VirtualFS'
 import { Editor } from './components/Editor'
+import { Blocks } from './components/Blocks'
 import type { EditorHandle } from './components/Editor'
 import { TurtleCanvas } from './components/TurtleCanvas'
 import { REPL } from './components/REPL'
@@ -16,6 +17,7 @@ export default function App() {
   const [output, setOutput] = useState('')
   const [turtleState, setTurtleState] = useState<TurtleState | null>(null)
   const [showHelp, setShowHelp] = useState(false)
+  const [showBlocks, setShowBlocks] = useState(false)
 
   const interpreterRef = useRef<Interpreter | null>(null)
   const turtleRef = useRef<Turtle | null>(null)
@@ -109,10 +111,16 @@ export default function App() {
   return (
     <div className="app">
       <Toolbar onRun={runCode} onStop={stop} onClear={clearScreen} onSave={onSave} onLoad={onLoad} onHelp={onHelp} />
+      <button onClick={() => setShowBlocks(value => !value)}>{showBlocks ? 'Text editor' : 'Blocks editor'}</button>
 
       <div className="main">
         <div className="editor-panel">
-          <Editor ref={editorRef} onRun={runCode} />
+          <div style={{ height: '100%', display: showBlocks ? 'none' : 'block' }}><Editor ref={editorRef} onRun={runCode} /></div>
+          {showBlocks && <Blocks onRun={code => {
+            setOutput('')
+            editorRef.current?.clearErrors()
+            interpreterRef.current?.run(code)
+          }} />}
         </div>
         <div className="canvas-panel">
           <TurtleCanvas onReady={onCanvasReady} />
