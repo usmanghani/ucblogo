@@ -10,6 +10,8 @@ export interface EditorHandle {
 }
 
 export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function Editor({ onRun }, ref) {
+  const onRunRef = useRef(onRun)
+  onRunRef.current = onRun
   const editorRef = useRef<unknown>(null)
   const monacoRef = useRef<any>(null)
   const modelRef = useRef<any>(null)
@@ -141,7 +143,7 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
       id: 'run-logo',
       label: 'Run Logo Program',
       keybindings: [m.KeyMod.CtrlCmd | m.KeyCode.Enter],
-      run: () => onRun(),
+      run: () => onRunRef.current(),
     })
     ed.addAction({
       id: 'toggle-line-comment',
