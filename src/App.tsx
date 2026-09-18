@@ -24,6 +24,7 @@ export default function App() {
   const fsRef = useRef<VirtualFS | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const editorRef = useRef<EditorHandle | null>(null)
+  const executingEditor = useRef(false)
 
   // Initialize the filesystem once on mount (hydrate from IndexedDB).
   useEffect(() => {
@@ -52,7 +53,7 @@ export default function App() {
         const message = error.message || String(error)
         setOutput((prev) => prev + `${message}\n`)
         const location = (error as LogoError).location
-        editorRef.current?.showError(message, location)
+        if (executingEditor.current) editorRef.current?.showError(message, location)
       },
     })
     interpreterRef.current = interp
@@ -64,7 +65,11 @@ export default function App() {
     setOutput('')
     editorRef.current?.clearErrors()
     const interp = interpreterRef.current
-    if (interp) interp.run(code)
+    if (interp) {
+      executingEditor.current = true
+      try { interp.run(code) }
+      finally { executingEditor.current = false }
+    }
   }, [])
 
   const stop = useCallback(() => {

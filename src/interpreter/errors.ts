@@ -39,9 +39,7 @@ export class LogoError extends Error {
     this.name = 'LogoError'
     this.code = code
     this.logoNumber = logoNumber
-    // Existing parser call sites historically passed the source line as the
-    // third argument. Preserve that information as a navigable location.
-    this.location = location ?? (typeof logoNumber === 'number' ? { line: logoNumber, col: 1 } : undefined)
+    this.location = location
   }
 }
 
