@@ -13,9 +13,14 @@ export function registerWorkspace(ev: Evaluator, ctx: EvalContext): void {
     ev.registerPrimitive({ name, minArgs, maxArgs, fn: (args) => fn(args) })
   }
 
+  reg('LOCAL', 1, 1, (args) => {
+    const names = args[0] instanceof LogoList ? args[0].items : [args[0]]
+    for (const name of names) ctx.env.set(String(name).toUpperCase(), '')
+    return ''
+  })
   reg('MAKE', 2, 2, (args) => {
     const name = String(args[0]).toUpperCase()
-    ctx.env.setGlobal(name, args[1])
+    ctx.env.assign(name, args[1])
     return ''
   })
 

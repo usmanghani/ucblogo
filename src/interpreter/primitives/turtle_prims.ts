@@ -5,7 +5,7 @@
 import type { Evaluator, EvalContext } from '../evaluator'
 import type { LogoValue } from '../types'
 import { isNumber, isList, LogoList, toLogoString } from '../types'
-import { badInput } from '../errors'
+import { badInput, LogoError } from '../errors'
 import type { Turtle } from '../../turtle/Turtle'
 import { LOGO_COLORS } from '../../turtle/Turtle'
 
@@ -15,7 +15,7 @@ function num(v: LogoValue, name: string): number {
 }
 
 function turtle(ctx: EvalContext): Turtle {
-  if (!ctx.turtle) throw new Error('Turtle graphics not available')
+  if (!ctx.turtle) throw new LogoError('Turtle graphics not available', 'BAD_INPUT')
   return ctx.turtle as Turtle
 }
 
@@ -76,6 +76,11 @@ export function registerTurtle(ev: Evaluator, ctx: EvalContext): void {
     if (v === undefined || !isNumber(v)) return turtle(ctx).nextCycleColor()
     turtle(ctx).setBackground(num(v, 'SETBG')); return ''
   })
+  reg('SETBGCOLOR', 0, 1, (args) => {
+    if (args.length === 0) return turtle(ctx).nextCycleColor()
+    turtle(ctx).setBackground(num(args[0], 'SETBGCOLOR'))
+    return ''
+  })
   reg('SETPENSIZE', 1, 1, (args) => { turtle(ctx).setPenSize(num(args[0], 'SETPENSIZE')); return '' })
   reg('SETPEN', 1, 1, (args) => {
     const p = args[0]
@@ -110,6 +115,27 @@ export function registerTurtle(ev: Evaluator, ctx: EvalContext): void {
 
   reg('ARC', 2, 2, (args) => { turtle(ctx).arc(num(args[0], 'ARC'), num(args[1], 'ARC')); return '' })
   reg('LABEL', 1, 1, (args) => { turtle(ctx).label(toLogoString(args[0])); return '' })
+  reg('PR', 1, 1, (args) => { ctx.output?.(`${toLogoString(args[0])}\n`); return '' })
+  reg('TT', 1, 1, (args) => { turtle(ctx).label(toLogoString(args[0])); return '' })
+  reg('TURTLETEXT', 1, 1, (args) => { turtle(ctx).label(toLogoString(args[0])); return '' })
+  reg('SETW', 1, 1, (args) => { turtle(ctx).setPenSize(num(args[0], 'SETW')); return '' })
+  reg('SETWIDTH', 1, 1, (args) => { turtle(ctx).setPenSize(num(args[0], 'SETWIDTH')); return '' })
+  // Recognizing syntax is not an implementation. Until these capabilities
+  // exist, fail explicitly so the editor can reveal the unsupported call.
+  const unsupported: Array<[string, number, number]> = [
+    ['SETFONT', 1, 1], ['STAMPRECT', 2, 3], ['STAMPOVAL', 2, 3],
+    ['SETVELOCITY', 1, 1], ['PLAY', 1, 1], ['MASTERPIECE', 1, 1],
+    ['WAIT', 1, 1], ['PX', 0, 0], ['FS', 0, 0], ['SETTS', 1, 1],
+    ['ASK', 2, 2], ['TELL', 1, 1],
+  ]
+  for (const [name, minArgs, maxArgs] of unsupported) {
+    reg(name, minArgs, maxArgs, () => {
+      throw new LogoError(`${name} is not implemented yet`, 'USER')
+    })
+  }
+  reg('GOHOME', 0, 0, () => { turtle(ctx).home(); return '' })
+  reg('IGNORE', 1, 1, () => '')
+  reg('ALERT', 1, 1, (args) => { ctx.output?.(`${toLogoString(args[0])}\n`); return '' })
   reg('FILL', 0, 0, () => { turtle(ctx).fill(); return '' })
 
   // Queries
@@ -180,4 +206,3 @@ export function registerTurtle(ev: Evaluator, ctx: EvalContext): void {
   reg('SAVEPICT', 1, 1, (args) => toLogoString(args[0]))
   reg('LOADPICT', 1, 1, (args) => toLogoString(args[0]))
 }
-

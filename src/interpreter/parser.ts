@@ -29,21 +29,29 @@ export type ASTNode =
 export interface LiteralNode {
   type: 'literal'
   value: number | string | boolean
+  line?: number
+  col?: number
 }
 
 export interface VarRefNode {
   type: 'varref'
   name: string
+  line?: number
+  col?: number
 }
 
 export interface ListNode {
   type: 'list'
   items: ASTNode[]
+  line?: number
+  col?: number
 }
 
 export interface ArrayNode {
   type: 'array'
   items: ASTNode[]
+  line?: number
+  col?: number
 }
 
 export interface ProcCallNode {
@@ -69,6 +77,8 @@ export interface InfixNode {
   op: string
   left: ASTNode
   right: ASTNode
+  line?: number
+  col?: number
 }
 
 const INFIX_PRECEDENCE: Record<string, number> = {
@@ -287,17 +297,8 @@ class Parser {
         this.next()
         return { type: 'varref', name: tok.value }
 
-      case 'LBRACKET': {
-        this.next()
-        const items: ASTNode[] = []
-        while (this.peek().type !== 'RBRACKET') {
-          if (this.atEnd()) throw new LogoError('Unclosed [', 'SYNTAX', tok.line)
-          const item = this.parseExpression(0)
-          if (item) items.push(item)
-        }
-        this.next() // consume ]
-        return { type: 'list', items }
-      }
+      case 'LBRACKET':
+        return this.parseList(false)
 
       case 'LBRACE': {
         this.next()
@@ -314,6 +315,19 @@ class Parser {
       case 'LPAREN': {
         // Parenthesized expression: either explicit-arity call or grouping.
         this.next()
+        if (this.peek().type === 'WORD') {
+          const nameToken = this.next()
+          const name = nameToken.value.toUpperCase()
+          const args: ASTNode[] = []
+          while (this.peek().type !== 'RPAREN') {
+            if (this.atEnd()) throw new LogoError('Unclosed (', 'SYNTAX', undefined, tok)
+            const arg = this.peek().type === 'LBRACKET' && this.isInstructionListArg(name, args.length)
+              ? this.parseList(true) : this.parseExpression(0)
+            if (arg) args.push(arg)
+          }
+          this.next()
+          return { type: 'call', name, args, line: nameToken.line, col: nameToken.col }
+        }
         const inner = this.parseExpression(0)
         if (this.peek().type === 'RPAREN') {
           this.next()
@@ -321,7 +335,7 @@ class Parser {
         }
         // Explicit-arity call: (NAME arg1 arg2 ...)
         if (inner && inner.type === 'call') {
-          const args = [inner.args[0]]
+          const args = [...inner.args]
           while (this.peek().type !== 'RPAREN') {
             if (this.atEnd()) throw new LogoError('Unclosed (', 'SYNTAX', tok.line)
             const arg = this.parseExpression(0)
@@ -336,6 +350,7 @@ class Parser {
       case 'WORD': {
         const name = tok.value.toUpperCase()
         this.next()
+        if (name === 'TRUE' || name === 'FALSE') return { type: 'literal', value: name === 'TRUE' }
         return this.parseCall(name, tok.line, tok.col)
       }
 
@@ -358,6 +373,57 @@ class Parser {
     }
   }
 
+  /**
+   * Parse a bracketed list. Logo uses the same syntax for instruction lists
+   * and data lists, but bare words in a data list must remain words rather
+   * than being interpreted as procedure calls. Control primitives explicitly
+   * opt into instruction-list parsing for their list arguments.
+   */
+  private parseList(instructionList: boolean): ListNode {
+    const start = this.next() // consume [
+    const items: ASTNode[] = []
+    while (this.peek().type !== 'RBRACKET') {
+      if (this.atEnd()) throw new LogoError('Unclosed [', 'SYNTAX', start.line)
+      const item = instructionList ? this.parseExpression(0) : this.parseDataItem()
+      if (item) items.push(item)
+    }
+    this.next() // consume ]
+    return { type: 'list', items }
+  }
+
+  /** Parse one item in a data list without consuming procedure inputs. */
+  private parseDataItem(): ASTNode | null {
+    const tok = this.peek()
+    switch (tok.type) {
+      case 'WORD':
+        this.next()
+        return { type: 'literal', value: tok.value }
+      case 'NUMBER':
+        this.next()
+        return { type: 'literal', value: parseFloat(tok.value) }
+      case 'STRING':
+        this.next()
+        return { type: 'literal', value: tok.value }
+      case 'VARREF':
+        this.next()
+        return { type: 'varref', name: tok.value }
+      case 'LBRACKET':
+        return this.parseList(false)
+      case 'LBRACE':
+        return this.parsePrimary()
+      case 'LPAREN':
+        // Parentheses are meaningful expressions even inside data lists.
+        return this.parsePrimary()
+      case 'OP':
+        throw new LogoError(`Unexpected operator ${tok.value}`, 'SYNTAX', tok.line)
+      case 'RBRACKET':
+      case 'EOF':
+        return null
+      default:
+        throw new LogoError(`Unexpected token ${tok.value}`, 'SYNTAX', tok.line)
+    }
+  }
+
   /** Parse a procedure call, reading `arity` arguments. */
   private parseCall(name: string, line: number, col: number): ASTNode {
     const arity = this.lookupArity(name)
@@ -367,12 +433,15 @@ class Parser {
     if (arity === undefined) {
       // Check if next token starts a call (e.g. it's followed by an argument
       // pattern). Logo defaults unknown words to literal words with arity 0.
-      return { type: 'literal', value: name }
+      return { type: 'call', name, args: [], line, col }
     }
 
     const args: ASTNode[] = []
     for (let i = 0; i < arity; i++) {
-      const arg = this.parseExpression(0)
+      if (name === 'IF' && i === 1 && this.peek().value.toUpperCase() === 'THEN') this.next()
+      const arg = this.peek().type === 'LBRACKET' && this.isInstructionListArg(name, i)
+        ? this.parseList(true)
+        : this.parseExpression(0)
       if (!arg) {
         throw new LogoError(`${name} needs more inputs`, 'NEED_MORE_INPUTS', line)
       }
@@ -380,6 +449,37 @@ class Parser {
     }
 
     return { type: 'call', name, args, line, col }
+  }
+
+  /** Return true for primitive arguments whose brackets contain instructions. */
+  private isInstructionListArg(name: string, index: number): boolean {
+    switch (name) {
+      case 'IFTRUE':
+      case 'IFFALSE':
+      case 'DO.WHILE':
+      case 'DO.UNTIL':
+      case 'FOREVER':
+      case 'RUN':
+        return index === 0
+      case 'IF':
+      case 'CATCH':
+      case 'REPEAT':
+      case 'FOREACH':
+        return index === 1
+      case 'WHILE':
+      case 'UNTIL':
+        return true
+      case 'IFELSE':
+        return index === 1 || index === 2
+      case 'FOR':
+        return index === 3
+      case 'DOTIMES':
+        return index === 2
+      case 'CASE':
+        return index === 1
+      default:
+        return false
+    }
   }
 
   /** Look up the arity of a procedure (primitive or user-defined). */

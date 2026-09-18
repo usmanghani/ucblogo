@@ -1,0 +1,287 @@
+{
+  "source": "https://resources.terrapinlogo.com/logolib/",
+  "programs": [
+    {
+      "slug": "clock",
+      "title": "24-Hour Clock",
+      "source": "clock.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "3cardmonte",
+      "title": "3-Card Monte",
+      "source": "3cardmonte.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "single_line",
+      "title": "A Single Line",
+      "source": "single_line.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "about",
+      "title": "About this Program\u2026",
+      "source": "about.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "animation_demo",
+      "title": "Animation Demo",
+      "source": "animation_demo.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "arnold",
+      "title": "Arnold",
+      "source": "arnold.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "fuer_elise",
+      "title": "Beethoven\u2019s \u201cF\u00fcr Elise\u201d",
+      "source": "fuer_elise.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "biosphere",
+      "title": "Biosphere and Biosquare",
+      "source": "biosphere.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "samebirthday",
+      "title": "The Birthday Paradox",
+      "source": "samebirthday.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "b_w",
+      "title": "Black and White",
+      "source": "b_w.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "cardtrick",
+      "title": "Card Trick",
+      "source": "cardtrick.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "chopsticks",
+      "title": "Chopsticks",
+      "source": "chopsticks.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "coinflips",
+      "title": "Coin Flips",
+      "source": "coinflips.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "colorhelper",
+      "title": "ColorHelper",
+      "source": "colorhelper.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "concert",
+      "title": "Concert",
+      "source": "concert.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "crabwork",
+      "title": "Crab",
+      "source": "crabwork.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "dice_simulation",
+      "title": "Dice Simulation",
+      "source": "dice_simulation.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "color_names",
+      "title": "Draw Color Names",
+      "source": "color_names.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "color_spray",
+      "title": "Draw a Wheel of Colors",
+      "source": "color_spray.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "easy_art",
+      "title": "Easy Art",
+      "source": "easy_art.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "factorial",
+      "title": "Factorials",
+      "source": "factorial.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "fractals",
+      "title": "Fractals",
+      "source": "fractals.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "gem",
+      "title": "Gem",
+      "source": "gem.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "gogetgeorge",
+      "title": "Go Get George",
+      "source": "gogetgeorge.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "golden_spiral",
+      "title": "Golden Spiral",
+      "source": "golden_spiral.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "hello",
+      "title": "Hello",
+      "source": "hello.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "hermann_grid",
+      "title": "Hermann Grid",
+      "source": "hermann_grid.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "partita",
+      "title": "J.S. Bach\u2019s Partita in E",
+      "source": "partita.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "toccata",
+      "title": "J.S. Bach\u2019s Toccata and Fugue in D Minor",
+      "source": "toccata.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "logoworks",
+      "title": "Logo Works: Lessons in Logo files",
+      "source": "logoworks.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "mandelbrot",
+      "title": "Mandelbrot Fractal",
+      "source": "mandelbrot.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "mystery_mansion",
+      "title": "Mystery Mansion",
+      "source": "mystery_mansion.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "guess_number",
+      "title": "Number Guessing Game",
+      "source": "guess_number.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "piano",
+      "title": "On-Screen Piano",
+      "source": "piano.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "onekey",
+      "title": "One Key",
+      "source": "onekey.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "ricochet_play",
+      "title": "Ricochet Play",
+      "source": "ricochet_play.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "sailboat",
+      "title": "Sailboat",
+      "source": "sailboat.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "scattergrams",
+      "title": "ScatterGrams",
+      "source": "scattergrams.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "slide_puzzle",
+      "title": "Slide Puzzle",
+      "source": "slide_puzzle.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "moas",
+      "title": "MOAS",
+      "source": "moas.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "snowflakes",
+      "title": "Snowflakes",
+      "source": "snowflakes.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "string_art",
+      "title": "String Art",
+      "source": "string_art.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "target",
+      "title": "Target",
+      "source": "target.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "tictactoe",
+      "title": "043-tictactoe.html",
+      "source": "tictactoe.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "triangles",
+      "title": "Triangles",
+      "source": "triangles.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "turtle_count",
+      "title": "Turtle Count",
+      "source": "turtle_count.lgo",
+      "procedures": ""
+    },
+    {
+      "slug": "swing_game",
+      "title": "Turtle Rope Swing Game",
+      "source": "swing_game.lgo",
+      "procedures": ""
+    }
+  ]
+}

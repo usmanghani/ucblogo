@@ -1,0 +1,453 @@
+[
+  {
+    "file": "3cardmonte.lgo",
+    "procedures": 30,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to ALIAS"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "about.lgo",
+    "procedures": 1,
+    "bodyFailures": [],
+    "startupErrors": [],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "animation_demo.lgo",
+    "procedures": 31,
+    "bodyFailures": [
+      "DO.ANIMATE: Unexpected operator *"
+    ],
+    "startupErrors": [
+      "I don't know how to CT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "arnold.lgo",
+    "procedures": 5,
+    "bodyFailures": [
+      "P: Unexpected operator <"
+    ],
+    "startupErrors": [],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "b_w.lgo",
+    "procedures": 2,
+    "bodyFailures": [],
+    "startupErrors": [],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "biosphere.lgo",
+    "procedures": 1,
+    "bodyFailures": [],
+    "startupErrors": [],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "cardtrick.lgo",
+    "procedures": 27,
+    "bodyFailures": [
+      "52PICKUP: Unexpected operator *"
+    ],
+    "startupErrors": [
+      "I don't know how to CLEARTEXT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "chopsticks.lgo",
+    "procedures": 1,
+    "bodyFailures": [],
+    "startupErrors": [
+      "PLAY is not implemented yet"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "clock.lgo",
+    "procedures": 10,
+    "bodyFailures": [
+      "ABOUT_CLOCK: FOR needs more inputs"
+    ],
+    "startupErrors": [
+      "I don't know how to SS"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "coinflips.lgo",
+    "procedures": 6,
+    "bodyFailures": [
+      "MANY.FLIPS: Unexpected operator ="
+    ],
+    "startupErrors": [
+      "I don't know how to CLEARTEXT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "color_names.lgo",
+    "procedures": 2,
+    "bodyFailures": [
+      "SHOW.COLOR.NAMES: Unexpected operator -"
+    ],
+    "startupErrors": [
+      "Unexpected operator -"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "color_spray.lgo",
+    "procedures": 1,
+    "bodyFailures": [],
+    "startupErrors": [],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "colorhelper.lgo",
+    "procedures": 44,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to DARK"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "concert.lgo",
+    "procedures": 2,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to CT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "crabwork.lgo",
+    "procedures": 20,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to C"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "dice_simulation.lgo",
+    "procedures": 13,
+    "bodyFailures": [
+      "SUM.ROW: Unexpected operator +",
+      "SUM.COL: Unexpected operator +",
+      "SUM.CELLS: Unexpected operator +"
+    ],
+    "startupErrors": [
+      "I don't know how to `MOVE"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "easy_art.lgo",
+    "procedures": 3,
+    "bodyFailures": [
+      "GOHOME: Unexpected operator >"
+    ],
+    "startupErrors": [],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "factorial.lgo",
+    "procedures": 5,
+    "bodyFailures": [],
+    "startupErrors": [],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "fractals.lgo",
+    "procedures": 23,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to ONE"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "fuer_elise.lgo",
+    "procedures": 8,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to CT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "gem.lgo",
+    "procedures": 4,
+    "bodyFailures": [
+      "GOHOME: Unexpected operator >"
+    ],
+    "startupErrors": [
+      "FS is not implemented yet"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "gogetgeorge.lgo",
+    "procedures": 4,
+    "bodyFailures": [
+      "ABOUT: TO needs a procedure name"
+    ],
+    "startupErrors": [
+      "N has no value"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "golden_spiral.lgo",
+    "procedures": 7,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to CLEARTEXT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "guess_number.lgo",
+    "procedures": 21,
+    "bodyFailures": [
+      "SORRY1: TO needs a procedure name"
+    ],
+    "startupErrors": [
+      "I don't know how to CT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "hello.lgo",
+    "procedures": 7,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to CT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "hermann_grid.lgo",
+    "procedures": 2,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to CT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "logoworks.lgo",
+    "procedures": 83,
+    "bodyFailures": [
+      "TINY.ISLE: SETXY needs more inputs",
+      "LT.ISLE: SETXY needs more inputs",
+      "CENTER.ISLE: SETXY needs more inputs"
+    ],
+    "startupErrors": [
+      "MAP needs more inputs"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "mandelbrot.lgo",
+    "procedures": 3,
+    "bodyFailures": [
+      "CALC: Unexpected operator *",
+      "MANDELBROT: FOR needs more inputs"
+    ],
+    "startupErrors": [
+      "I don't know how to CREATES"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "moas.lgo",
+    "procedures": 4,
+    "bodyFailures": [
+      "MANY.TURTLES: Unexpected operator +",
+      "ABOUT: TO needs a procedure name"
+    ],
+    "startupErrors": [
+      "LOOPS has no value"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "mystery_mansion.lgo",
+    "procedures": 13,
+    "bodyFailures": [
+      "TAKE: Malformed ( ) expression"
+    ],
+    "startupErrors": [
+      "I don't know how to PPROPS"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "onekey.lgo",
+    "procedures": 3,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to FULLSCREEN"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "partita.lgo",
+    "procedures": 4,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to CLEARTEXT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "piano.lgo",
+    "procedures": 11,
+    "bodyFailures": [],
+    "startupErrors": [
+      "SETXY doesn't like [object Object] as input"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "ricochet_play.lgo",
+    "procedures": 15,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to SETSHAPE"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "sailboat.lgo",
+    "procedures": 11,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to 200*.7"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "samebirthday.lgo",
+    "procedures": 1,
+    "bodyFailures": [
+      "SAMEBIRTHDAY: Unexpected operator *"
+    ],
+    "startupErrors": [],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "scattergrams.lgo",
+    "procedures": 42,
+    "bodyFailures": [
+      "ASSIGN.TURTLES: Unexpected operator *",
+      "CURRENT.WORD.SIZE: Unexpected operator +"
+    ],
+    "startupErrors": [
+      "I don't know how to FULLSCREEN"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "single_line.lgo",
+    "procedures": 2,
+    "bodyFailures": [],
+    "startupErrors": [
+      "WAIT is not implemented yet"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "slide_puzzle.lgo",
+    "procedures": 31,
+    "bodyFailures": [
+      "SETUP.SCREEN: Unexpected operator *",
+      "GRID.LINES: Unexpected operator +"
+    ],
+    "startupErrors": [
+      "Unexpected operator *"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "snowflakes.lgo",
+    "procedures": 4,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I/10 has no value"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "string_art.lgo",
+    "procedures": 3,
+    "bodyFailures": [
+      "KOCH_HB: Malformed ( ) expression"
+    ],
+    "startupErrors": [],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "swing_game.lgo",
+    "procedures": 8,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to OF"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "target.lgo",
+    "procedures": 13,
+    "bodyFailures": [
+      "DO.COMPASS: Unexpected operator -"
+    ],
+    "startupErrors": [
+      "I don't know how to CT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "tictactoe.lgo",
+    "procedures": 36,
+    "bodyFailures": [],
+    "startupErrors": [
+      "SETFONT is not implemented yet"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "toccata.lgo",
+    "procedures": 7,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to CT"
+    ],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "triangles.lgo",
+    "procedures": 4,
+    "bodyFailures": [],
+    "startupErrors": [],
+    "behavior": "not-verified"
+  },
+  {
+    "file": "turtle_count.lgo",
+    "procedures": 7,
+    "bodyFailures": [],
+    "startupErrors": [
+      "I don't know how to CT"
+    ],
+    "behavior": "not-verified"
+  }
+]

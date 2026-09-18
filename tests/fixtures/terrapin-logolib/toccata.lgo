@@ -1,0 +1,96 @@
+TO INTRO
+    PLAY [R I19 T50 P REV50]
+    PLAY [L32 [A4 A5] [G4 G5] L4 [A4 A5] L8 P L32 [G4 G5] [F4 F5] [E4 E5] [D4 D5] [Db4] L8 [Db5] L4 [D4 D5] P ]
+    PLAY [L32 V80 A4 G4 L4 A4 L8 P L16 E4 F4 Db4 L4 D4 P]
+    PLAY [L32 A4 G4 L4 A4 L8 P L32 G4 F4 E4 D4 Db4 L4 D4 P]
+    PLAY [L8 D2 Db3 E3 G3 Bb3 V127 Db4 L2 E4 L16 P L8 [D3 A3 D4] E3 L4 Gb3 P]
+END
+TO ONE
+    PLAY [I19 T60]
+    PLAY [L32 [Db4. Db3][D3 D4][E3 E4][Db4 Db3][D3 D4][E3 E4][Db3 Db4][D3 D4][E3 E4] [Db4 Db3]]
+    PLAY [[D3. D4] [E3 E4][F4 F3] [G3 G4][E3 E4][F4 F3][G3 G4][E3 E4][F4 F3][G4 G3][E3 E4]]
+    PLAY [[F3. F4][G3 G4][A3 A4][Bb3 Bb4][G3 G4][A3 A4][Bb3 Bb4][G3 G4][A3 A4][Bb3 Bb4][G3 G4]]
+    PLAY [L16 A P.]
+    PLAY [L32 [Db4 Db5.][D4 D5][E4 E5][Db4 Db5][D4 D5][E4 E5][Db4 Db5] [D4 D5][E4 E5] [Db4 Db5]]
+    PLAY [[D4. D5] [E4 E5][F4 F5] [G4 G5][E4 E5][F4 F5][G4 G5][E4 E5][F4 F5][G4 G5][E4 E5]]
+    PLAY [[F4. F5][G4 G5][A4 A5][Bb4 Bb5][G4 G5][A4 A5][Bb4 Bb5][G4 G5][A4 A5][Bb4 Bb5][G4 G5]]
+    PLAY [L16 [A4 A3] P.]
+END
+
+TO TWO
+    PLAY [L32 [A5 A4] [G4 G5] [Bb4 Bb5] [E4 E5] [G4 G5]]
+    PLAY [[Bb4 Bb5] [E4 E5] [F5 F4] [A5 A4] [D5 D4] [F5 F4] [A4 A5] [D5 D4] [E4 E5]]
+    PLAY [[G4 G5] [C4 C5] [E4 E5] [G4 G5] [C5 C4] [D4 D5] [F5 F4] [Bb3 Bb4] [D5 D4]]
+    PLAY [[F5 F4] [Bb3 Bb4] [C4 C5] [E4 E5] [A3 A4] [C4 C5] [E4 E5] [A3 A4] [Bb3 Bb4]]
+    PLAY [[D4 D5] [G3 G4] [Bb4 Bb3] [D5 D4] [G3 G4] [A3 A4] [C5 C4] [F3 F4] [A3 A4]]
+    PLAY [[C5 C4] [F4 F3] [G3 G4] [Bb3 Bb4] [E4 E3] [G3 G4] [Bb3 Bb4] [E3 E4] [F3 F4]]
+    PLAY [[A4 A3] [D3 D4] [F3 F4] [A3 A4] [D3 D4] [E4 E3] [G4 G3] [C3 C4] [E3 E4]]
+    PLAY [[G3 G4] [C4 C3 D2]]
+    PLAY [T71 Db3 T61 E3 T56 G3 T50 Bb3 T45 Db4 T35 E4 T24 G4 T20 L8 Bb4 P]
+    PLAY [I19 T80 L32]
+    PLAY [Bb4 A4 G4 F4 E4 D4 Db4 B3 Db4 A3 Db4 E4 G4 F4 E4 L2 [F4 D4 A3 F3 D3 D2] P]
+END
+TO THREE
+    PLAY [I19 T70 L32]
+    PLAY [A4 [A4 D5] A4 E5 A4 F5 A4 D5 A4 E5 A4 F5 A4 G5 A4 E5 A4 F5 A4 G5 A4 A5 A4 F5]
+    PLAY [A4 G5 A4 A5 A4 Bb5 A4 G5 A4 A5 A4 F5 A4 G5 A4 E5 A4 F5 A4 D5 A4 E5 A4 Db5]
+    PLAY [A4 [D5 A4] A4 A4 Bb4 A4 G4 A4 A4 A4 F4 A4 G4 A4 E4 A4 F4 A4 D4 A4 G4 A4]
+    PLAY [E4 A4 F4 A4 D4 A4 E4 A4 Db4 A4 D4 A4 A3 A4 Bb3 A4 G3 A4 A3 A4 F3 A4 G3 A4]
+    PLAY [E3 A4 F3 A4 D3 A4 G3 A4 E3 A4 F3 A4 D3 A4 E3 A4 Db3 A4 L8 D3]
+    PLAY [L32 D4 F4 Bb4 F4 C4 E4 A4 E4 Bb3 D4 G4 D4 A3 Db4 E4 A4]
+    PLAY [T60 L16 [D3 D4] [F4 Bb4] [A3 C3] [E4 A4] [Bb2 Bb3] [G4 D4] L8 [A4 E4 Db4 E3 A2]]
+    PLAY [T70 L32 D4 F4 Bb4 F4 C4 E4 A4 E4 Bb3 D4 G4 D4 A3 Db4 E4 A4]
+    PLAY [T60 L16 [D3 D4] [F4 Bb4] [A3 C3] [E4 A4] [Bb2 Bb3] [G4 D4] L8 [A4 E4 Db4 E3 A2]]
+END
+TO FOUR
+    PLAY [I19 T70 L32]
+    PLAY [G4 F4 E4 D4 Db4 B3 Db4 A3 B3 Db4 D4 E4 F4 G4 A4 G4 F4]
+    PLAY [E4 F4 D4 F4 A4 Db5 D5 A4 B4 Db5 D5 E5 F5 G5 A5 Bb5 D5 D3]
+    PLAY [T60 L16 [F5 Bb5] [A4 C3][A5 E5] [Bb2 Bb4] [G5 D5] L8 [A2 E4 A5 E5 Db5]]
+    PLAY [T70 L32 D5 F5 Bb5 F5 C5 E5 A5 E5 Bb4 D5 G5 D5 A4 Db5 E5 A5]
+    PLAY [T60 L16 [D3 D5] [F5 Bb5] [A4 C3] [A5 E5] [Bb4 Bb2] [G5 D5] L8 [A5 Db5 A2 E5 A4 E4]]
+    PLAY [[Ab2 B3 F4 B4 D5][Db5 E4 A3 G2] P]
+    PLAY [L32 A4 B4 A4 Db5 E5 G5 Bb5 A5 G5 F5 E5 F5 E5]
+    PLAY [T71 D5]
+    PLAY [T54 Db5]
+    PLAY [T48 D5 C5 Bb4 A4 G4 F4 E4 D4 L4 [E5 Bb4 G4 E4 Db4 G3] P]
+END
+TO FIVE
+    PLAY [I19 T80 L32 Db5]
+    PLAY [T140 [E4 Db5] [G4 E5] [E4 Db5] [Bb4 Db4] [E4 Db5] [Bb4 Db4] [E4 Db5] [G4 E5]]
+    PLAY [[E4 Db5] [Db4 Bb4] [E4 Db5] [Bb4 Db4] [E4 Db5] [G4 E5] [E4 Db5] [Db4 Bb4]]
+    PLAY [[Db5 E4] [Bb4 Db4] [E4 Db5] [G4 E5] [E4 Db5] [Bb4 Db4] [E4 Db5] [Db4 Bb4]]
+    PLAY [[Bb3 G4] [Db4 Bb4] [Bb3 G4] [G3 E4] [Bb3 G4] [E4 G3] [G4 Bb3] [Bb4 Db4]]
+    PLAY [[G4 Bb3] [E4 G3] [G4 Bb3] [G3 E4] [Bb3 G4] [Db4 Bb4] [Bb3 G4] [G3 E4] [Bb3 G4]]
+    PLAY [[E4 G3] [G4 Bb3] [Bb4 Db4] [G4 Bb3] [E4 G3] [G4 Bb3] [G3 E4] [E3 Db4] [E4 G3]]
+    PLAY [[E3 Db4] [Db3 Bb3] [E3 Db4] [Db3 Bb3] [E3 Db4] [G3 E4] [E3 Db4] [Db3 Bb3]]
+    PLAY [[E3 Db4] [Db3 Bb3] [E3 Db4] [E4 G3] [E3 Db4] [Db3 Bb3] [E3 Db4] [Db3 Bb3]]
+    PLAY [[E3 Db4] [G3 E4] [E3 Db4] [Db3 Bb3] [E3 Db4] [Db3 Bb3] [E3 Db4] [G3 E4]]
+    PLAY [[E3 Db4] [G3 E4] [Bb3 G4] [G3 E4] [E3 Db4] [G3 E4] [E3 Db4] [G3 E4] [Bb3 G4]]
+    PLAY [[G3 E4] [E3 Db4] [G3 E4] [E3 Db4] [G3 E4] [Bb3 G4] [G3 E4] [E3 Db4] [G3 E4]]
+    PLAY [[E3 Db4] [G3 E4] [Bb3 G4] [G3 E4] [E3 G4] [G3 Bb4] [E3 G4] [G3 Bb4] [G4 E3]]
+    PLAY [[G3 Bb4] [Bb3 G4] [Db4 Bb4] [Bb3 G4] [Db4 Bb4] [Bb3 G4] [Db4 Bb4] [E4 Db5]]
+    PLAY [[Bb4 Db4] [E4 Db5] [Db4 E5] [E4 Db5] [Db4 E5] [E4 Db5] [E5 Db4] [E4 Db5]]
+    PLAY [[Db4 E5] [E4 Db5] [Db4 E5]]
+    PLAY [T80 L2 [E5 Db5 A4 Db4 A3 G3 A5 E4] [A5 D4 F5 D5 A4 F4 F3 A3] [Bb2. Bb3 G5 D5 Bb4 G4 D4]]
+    PLAY [L16 [A3 A2] [G3 G2]]
+    PLAY [L4 [A2 Db3 E3 A3 Db4 E4 G4 Db5 A5]]
+    PLAY [T60 L8 [E2 E3] [F3 F2] [D3 D2] [E3 E2] [Db2 Db3] [D2 D3] [B1 B2] [Db2 Db3] [A1 A2]]
+    PLAY [[Bb2 Bb1] [Ab1 Ab2] [A2 A1] [A4 Db5 E4 A3 G3]]
+    PLAY [L4 [F3 A3 A4 D4 F4 D5][D3 A3 F4 D4][A2 A3 D4 E4]]
+    PLAY [L8 Db4 G3 L4 [G3 D2 D3 A3 D4] L8 F3 E3 L2 [F2 D3 F3 A3 D4] P]
+END
+
+TO TOCCATA
+    INTRO
+    ONE
+    TWO
+    THREE
+    FOUR
+    FIVE
+END
+
+CT
+PR `The procedures in this file will play the first part`
+PR `of "Toccata and Fugue in D minor" by J.S. Bach.`
+PR `To hear it, type TOCCATA.`
