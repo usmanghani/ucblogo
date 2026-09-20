@@ -87,3 +87,19 @@ describe('Turtle', () => {
     expect(s.heading).toBe(0)
   })
 })
+
+// After a worker run, manual REPL commands must continue with its pen settings.
+it('adopts isolated drawing state and pen style before further movement', () => {
+  const contexts = vi.spyOn(HTMLCanvasElement.prototype, 'getContext')
+  const turtle = makeTurtle()
+  const strokes = contexts.mock.results[0].value as CanvasRenderingContext2D
+  const state = { ...turtle.getState(), penColor: 4, penSize: 3, x: 30, y: 40, visible: false }
+  const image = {} as ImageBitmap
+  turtle.applySnapshot(image, state)
+  turtle.forward(10)
+  expect(strokes.drawImage).toHaveBeenCalledWith(image, 0, 0)
+  expect(strokes.strokeStyle).toBe('#aa0000')
+  expect(strokes.lineWidth).toBe(3)
+  expect(turtle.getState()).toMatchObject({ x: 30, y: 50, penColor: 4, penSize: 3 })
+  contexts.mockRestore()
+})

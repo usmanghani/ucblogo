@@ -101,6 +101,8 @@ export class Turtle {
     this.state = { ...state }
     this.bctx.clearRect(0, 0, this.width, this.height)
     this.bctx.drawImage(image, 0, 0)
+    this.bctx.strokeStyle = LOGO_COLORS[state.penColor] ?? '#000000'
+    this.bctx.lineWidth = state.penSize
     this.notify()
   }
 
