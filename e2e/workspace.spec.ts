@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
 
 async function command(page: import('@playwright/test').Page, code: string) {
   const input = page.getByPlaceholder('Type a Logo command...')

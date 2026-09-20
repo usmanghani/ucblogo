@@ -7,7 +7,7 @@ Every branch push and pull request runs `CI`:
 - `Vercel preview tests`: the same browser suite runs against a successful Vercel deployment for the exact commit. No deployment means this job is explicitly skipped. A deployed but inaccessible or broken preview fails; it is not silently skipped.
 - `CI gate`: succeeds only if the mandatory jobs pass and the preview job either passes or is legitimately skipped.
 
-Successful deployment status events rerun CI, so a preview that finishes after the initial checks gets browser coverage. The workflow must exist on the default branch for deployment events. Vercel must publish GitHub deployment records. Protected previews need to be accessible to the runner; this setup does not bypass authentication.
+Successful deployment status events rerun CI, so a preview that finishes after the initial checks gets browser coverage. The workflow must exist on the default branch for deployment events. Vercel must publish GitHub deployment records. For protected previews, create a Vercel Protection Bypass for Automation secret and store it as the GitHub Actions secret `VERCEL_AUTOMATION_BYPASS_SECRET`. Credentials are sent only to the deployment origin; traces are disabled when credentials are used. Fork PRs do not receive the secret. Without access, CI fails early with setup instructions.
 
 Reports, traces, and failure screenshots are uploaded as workflow artifacts. No automatic merging is configured.
 
