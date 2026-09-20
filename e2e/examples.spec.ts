@@ -47,8 +47,17 @@ test('animated rocket changes frames, Stop freezes it, and the original remains 
   await menu.selectOption('rocket-launch')
   await page.getByTitle('Run (Ctrl+Enter)', { exact: true }).click()
   const canvas = page.locator('.canvas-panel canvas')
-  const frame = () => canvas.evaluate((c: HTMLCanvasElement) => c.toDataURL())
-  await expect.poll(frame).not.toBe('data:,')
+  const frame = async () => {
+    const output = await page.getByRole('log').innerText()
+    if (output.trim() && !output.includes('[Stopped]')) throw new Error(`Animation output: ${output}`)
+    return canvas.evaluate((c: HTMLCanvasElement) => {
+      const data = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data
+      let hash = 2166136261
+      for (let i = 0; i < data.length; i++) hash = Math.imul(hash ^ data[i], 16777619)
+      return hash >>> 0
+    })
+  }
+  await expect(page.getByRole('log')).toHaveText('')
   const countdown = await frame()
   await expect.poll(frame, { timeout: 4000 }).not.toBe(countdown)
   // Let the three-second countdown finish, then observe moving launch frames.
