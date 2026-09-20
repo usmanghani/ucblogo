@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  deployment_status:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event.deployment.id || '' }}
+  cancel-in-progress: true
+
+jobs:
+  target:
+    name: Resolve test target
+    if: github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.target.outputs.ref }}
+      preview: ${{ steps.target.outputs.preview }}
+    steps:
+      - uses: actions/github-script@v7
+        id: target
+        with:
+          script: |
+            const sha = context.payload.pull_request?.head.sha || context.payload.deployment?.sha || context.sha;
+            const ref = context.payload.deployment?.sha || context.sha;
+            core.setOutput('ref', ref);
+            const {owner, repo} = context.repo;
+            const deployments = await github.paginate(github.rest.repos.listDeployments, {owner, repo, sha, per_page: 100});
+            for (const deployment of deployments) {
+              if (deployment.creator?.login !== 'vercel[bot]') continue;
+              const {data: statuses} = await github.rest.repos.listDeploymentStatuses({owner, repo, deployment_id: deployment.id, per_page: 1});
+              const latest = statuses[0];
+              if (latest?.state !== 'success') continue;
+              const address = latest.environment_url || latest.target_url;
+              if (!address) continue;
+              const url = new URL(address);
+              if (url.protocol !== 'https:' || !url.hostname.endsWith('.vercel.app')) continue;
+              core.setOutput('preview', url.origin);
+              await core.summary.addRaw(`Testing Vercel deployment for ${sha}: ${url.origin}`).write();
+              return;
+            }
+            core.setOutput('preview', '');
+            await core.summary.addRaw(`Vercel tests skipped: no successful Vercel deployment exists for ${sha}.`).write();
+
+  unit:
+    name: Unit tests, lint, and build
+    needs: target
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.target.outputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:ci
+      - run: npm run lint
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-results
+          path: test-results/unit.xml
+          if-no-files-found: ignore
+
+  browser:
+    name: Browser tests
+    needs: target
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.target.outputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+  vercel:
+    name: Vercel preview tests
+    needs: target
+    if: needs.target.outputs.preview != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.target.outputs.ref }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ needs.target.outputs.preview }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.VERCEL_AUTOMATION_BYPASS_SECRET || '' }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vercel-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+  gate:
+    name: CI gate
+    if: always() && (github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success')
+    needs: [target, unit, browser, vercel]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all applicable checks
+        env:
+          TARGET: ${{ needs.target.result }}
+          UNIT: ${{ needs.unit.result }}
+          BROWSER: ${{ needs.browser.result }}
+          VERCEL: ${{ needs.vercel.result }}
+          PREVIEW: ${{ needs.target.outputs.preview }}
+        run: |
+          test "$TARGET" = success
+          test "$UNIT" = success
+          test "$BROWSER" = success
+          if [ -n "$PREVIEW" ]; then
+            test "$VERCEL" = success
+          else
+            test "$VERCEL" = skipped
+            echo 'Vercel preview tests skipped: no deployment for this commit.' >> "$GITHUB_STEP_SUMMARY"
+          fi
