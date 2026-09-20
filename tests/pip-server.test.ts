@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { expect, it, vi } from 'vitest'
 import { handleAssistant } from '../server/assistant'
+vi.mock('../server/rate-limit', () => ({ checkAssistantQuota: vi.fn(async () => undefined) }))
 const request = (body: unknown = { messages: [{ role: 'user', content: 'Draw a rocket' }], program: 'CS', consent: true }, origin = 'https://logo.example') => new Request('https://logo.example/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json', origin }, body: JSON.stringify(body) })
 it('pins the free router and tools on the server, adds context, and streams', async () => {
   const fetcher = vi.fn(async () => new Response('data: [DONE]\n\n', { headers: { 'Content-Type': 'text/event-stream' } }))
@@ -34,5 +35,18 @@ it('requires explicit consent before sending source to a provider', async () => 
   const fetcher = vi.fn()
   const r = await handleAssistant(request({ messages: [{ role: 'user', content: 'hi' }], program: 'PRINT 42', consent: false }), 'key', fetcher)
   expect(r.status).toBe(403)
+  expect(fetcher).not.toHaveBeenCalled()
+})
+
+it('rejects missing Origin instead of treating it as a trusted caller', async () => {
+  const req = request(); req.headers.delete('origin')
+  const fetcher = vi.fn()
+  expect((await handleAssistant(req, 'key', fetcher)).status).toBe(403)
+  expect(fetcher).not.toHaveBeenCalled()
+})
+it.each([429, 503])('never calls the model when quota enforcement returns %s', async status => {
+  const fetcher = vi.fn()
+  const response = await handleAssistant(request(), 'key', fetcher, async () => Response.json({ error: 'Unavailable' }, { status }))
+  expect(response.status).toBe(status)
   expect(fetcher).not.toHaveBeenCalled()
 })

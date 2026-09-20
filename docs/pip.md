@@ -8,7 +8,20 @@ Set `OPENROUTER_API_KEY` in Vercel project Settings → Environment Variables fo
 
 The server always requests `openrouter/free`, including tools in each request. It never falls back to a paid model. Free model availability, response speed, and quality vary. Quota/rate errors are reported so the user can retry. A missing key returns a clear 503 configuration error.
 
-This is a public inference endpoint with bounded request size, tokens, time, and allowed tools, not an authenticated multi-user service. Same-origin browser checks are not authentication. Use a dedicated key with an appropriate OpenRouter spending limit and Vercel deployment protection or firewall rate limiting when exposing a deployment; a distributed per-user quota would require an identity/store service.
+This remains a public assistant with explicit provider-sharing consent. Same-origin checks are required but are not authentication. Vercel Firewall enforces shared quotas before any model request. Use a dedicated OpenRouter key with a spending limit; do not reuse a personal key with unrelated permissions.
+
+### Configure shared quotas before deploying
+
+Create two `@vercel/firewall` SDK rate-limit rules in the project's Firewall configuration:
+
+| Rate limit ID | Suggested limit | Bucket supplied by server |
+| --- | --- | --- |
+| `pip-assistant-ip` | 60 requests / 60 seconds | Vercel's trusted client IP |
+| `pip-assistant-global` | 300 requests / 60 seconds | `all-users` |
+
+Each agent turn can use up to eight requests. Start by observing rule matches in log mode, validate enforcement in Preview, then enable rate limiting in Production after reviewing legitimate traffic. Missing rules, firewall errors, or an unexpected server environment fail closed with 503. Exhausted quotas return 429 with Retry-After. The rules must apply to Preview and Production, including automation requests; do not add broad firewall bypasses for CI. Enable Vercel system environment variables and the automation bypass environment required by the SDK for protected previews.
+
+The API runs in `iad1` because Vercel's shared counters are per-region. Do not enable additional function regions without adjusting the total quota design. Only loopback local development is exempt from quota calls. Process-local counters are deliberately not used: they reset on cold starts and cannot enforce a shared budget.
 
 ## Workspace behavior
 
@@ -23,7 +36,7 @@ This is a public inference endpoint with bounded request size, tokens, time, and
 
 ## Tests
 
-`npm test` covers agent sequencing, error repair, stream fragmentation, UTF-8, cancellation, step bounds, edit conflicts, request validation, server-only key handling, and no paid fallback. `npm run test:e2e` adds prompt-to-drawing, follow-up, chat persistence, undo, cancellation, infinite-loop termination, and mobile/error states. E2E tests mock model responses but use the real editor, agent loop, worker, interpreter, and canvas. The same suite runs against Vercel previews through existing CI. These deterministic checks do not claim live free-model quality or API credential validity.
+`npm test` covers agent sequencing, error repair, stream fragmentation, UTF-8, cancellation, step bounds, edit conflicts, request validation, server-only key handling, and no paid fallback. `npm run test:e2e` adds prompt-to-drawing, follow-up, chat persistence, undo, cancellation, infinite-loop termination, and mobile/error states. E2E tests mock model responses but use the real editor, agent loop, worker, interpreter, and canvas. The same suite runs against Vercel previews through existing CI. A separate required `npm run test:live` makes one small synthetic request to the deployed endpoint and verifies actual model output through the complete SSE stream. It does not evaluate model quality. Missing server credentials or quota configuration blocks CI.
 
 References:
 - https://openrouter.ai/docs/guides/routing/routers/free-router

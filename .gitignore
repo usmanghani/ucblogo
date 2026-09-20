@@ -38,3 +38,7 @@ test-results/
 # Server secrets
 .env*
 !.env.example
+
+# Generated from the pinned monaco-editor dependency
+public/monaco/
+public/deployment.json

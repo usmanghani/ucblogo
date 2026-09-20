@@ -1,3 +1,4 @@
+import { checkAssistantQuota, type QuotaCheck } from './rate-limit.js'
 import { tools, MAX_PROGRAM, type Message } from '../src/assistant/protocol.js'
 
 const system = `You are Pip, a friendly, concise Logo programming assistant inside UCBLogo Web.
@@ -29,11 +30,11 @@ function validMessages(value: unknown): value is Message[] {
   return !pending.size && value[0].role === 'user' && value.at(-1).role !== 'assistant'
 }
 
-export async function handleAssistant(request: Request, key = process.env.OPENROUTER_API_KEY, fetcher: typeof fetch = fetch): Promise<Response> {
+export async function handleAssistant(request: Request, key = process.env.OPENROUTER_API_KEY, fetcher: typeof fetch = fetch, quota: QuotaCheck = checkAssistantQuota): Promise<Response> {
   const error = (message: string, status: number) => Response.json({ error: message }, { status, headers: { 'Cache-Control': 'no-store' } })
   if (request.method !== 'POST') return error('Use POST.', 405)
   const origin = request.headers.get('origin')
-  if (origin && origin !== new URL(request.url).origin) return error('Cross-origin requests are not allowed.', 403)
+  if (origin !== new URL(request.url).origin) return error('Cross-origin requests are not allowed.', 403)
   if (!request.headers.get('content-type')?.includes('application/json')) return error('Expected JSON.', 415)
   // Bound the streamed body before parsing rather than trusting Content-Length.
   let raw = ''
@@ -56,6 +57,8 @@ export async function handleAssistant(request: Request, key = process.env.OPENRO
   if (!data || !validMessages(data.messages) || typeof data.program !== 'string' || data.program.length > MAX_PROGRAM) return error('Invalid conversation or program. Start a new chat if it is too long.', 400)
   if (data.consent !== true) return error('Allow sending prompts and program text to OpenRouter before using Pip.', 403)
   if (!key) return error('Pip is not connected yet. Set OPENROUTER_API_KEY in the server environment.', 503)
+  const limited = await quota(request)
+  if (limited) return limited
   try {
     const upstream = await fetcher('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',

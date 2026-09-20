@@ -1,5 +1,9 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react'
-import MonacoEditor from '@monaco-editor/react'
+import MonacoEditor, { loader } from '@monaco-editor/react'
+import { dependencies } from '../../package.json'
+
+// Serve the pinned editor and its workers from this deployment, including offline/CDN-blocked networks.
+loader.config({ paths: { vs: `/monaco/${dependencies['monaco-editor']}/vs` } })
 import { useProgramSession } from '../session/useProgramSession'
 import type { SourceLocation } from '../interpreter/errors'
 
