@@ -2,7 +2,7 @@ import { test as base, expect } from '@playwright/test'
 
 // Scope Vercel automation credentials to this deployment origin only.
 export const test = base.extend({
-  page: async ({ page, baseURL }, use) => {
+  page: async ({ page, baseURL }, providePage) => {
     const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
     if (secret && baseURL) {
       const origin = new URL(baseURL).origin
@@ -14,7 +14,7 @@ export const test = base.extend({
         }
       })
     }
-    await use(page)
+    await providePage(page)
   },
 })
 export { expect }
