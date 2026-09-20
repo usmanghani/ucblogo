@@ -1,0 +1,74 @@
+; SOCCER BALL
+; Paste this entire file into the text editor and press Run.
+; Use a graphics area at least 260 wide and 260 high.
+; Run SOCCER again to redraw the ball.
+
+TO MOVE.TO :X :Y
+  PU SETXY :X :Y PD
+END
+
+TO SOCCER
+  CS
+  SETBG 15
+  SETPC 0
+  SETPENSIZE 3
+  HT
+
+  ; Round outline
+  MOVE.TO 0 0
+  ARC 360 120
+
+  ; Central pentagon
+  MOVE.TO 0 48
+  SETXY 46 15
+  SETXY 28 -39
+  SETXY -28 -39
+  SETXY -46 15
+  SETXY 0 48
+
+  ; Seams leading toward the outer panels
+  MOVE.TO 0 48
+  SETXY 0 92
+  MOVE.TO 46 15
+  SETXY 88 28
+  MOVE.TO 28 -39
+  SETXY 54 -74
+  MOVE.TO -28 -39
+  SETXY -54 -74
+  MOVE.TO -46 15
+  SETXY -88 28
+
+  ; Partial panels around the edge
+  MOVE.TO -40 113
+  SETXY 0 92
+  SETXY 40 113
+  MOVE.TO 95 73
+  SETXY 88 28
+  SETXY 119 -3
+  MOVE.TO 99 -68
+  SETXY 54 -74
+  SETXY 34 -115
+  MOVE.TO -34 -115
+  SETXY -54 -74
+  SETXY -99 -68
+  MOVE.TO -119 -3
+  SETXY -88 28
+  SETXY -95 73
+
+  ; Shade the central pentagon
+  SETPENSIZE 2
+  MOVE.TO -8 39 SETXY 8 39
+  MOVE.TO -19 31 SETXY 19 31
+  MOVE.TO -30 23 SETXY 30 23
+  MOVE.TO -43 15 SETXY 43 15
+  MOVE.TO -41 7 SETXY 41 7
+  MOVE.TO -38 -1 SETXY 38 -1
+  MOVE.TO -35 -9 SETXY 35 -9
+  MOVE.TO -33 -17 SETXY 33 -17
+  MOVE.TO -30 -25 SETXY 30 -25
+  MOVE.TO -28 -33 SETXY 28 -33
+
+  PU HOME HT
+END
+
+SOCCER

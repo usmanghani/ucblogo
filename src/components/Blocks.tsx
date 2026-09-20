@@ -1,12 +1,20 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as Blockly from 'blockly'
 import { generateLogo, toolbox } from '../blocks/logo'
 
-export function Blocks({ onRun }: { onRun: (code: string) => void }) {
+export interface BlocksHandle { getCode: () => string }
+
+export const Blocks = forwardRef<BlocksHandle, { onRun: () => void }>(function Blocks({ onRun }, ref) {
   const host = useRef<HTMLDivElement>(null)
   const workspace = useRef<Blockly.WorkspaceSvg | null>(null)
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
+  useImperativeHandle(ref, () => ({
+    getCode: () => {
+      if (!workspace.current) throw new Error('Blocks workspace is not ready')
+      return generateLogo(workspace.current)
+    },
+  }), [])
   useEffect(() => {
     const ws = Blockly.inject(host.current!, { toolbox, trashcan: true, zoom: { controls: true, wheel: true } })
     workspace.current = ws
@@ -35,7 +43,7 @@ export function Blocks({ onRun }: { onRun: (code: string) => void }) {
     URL.revokeObjectURL(url)
   }
   return <section aria-label="Logo blocks" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-    <div><button disabled={!!error || !code} onClick={() => onRun(code)}>Run blocks</button>
+    <div><button disabled={!!error || !code} onClick={onRun}>Run blocks</button>
       <button onClick={save}>Save blocks</button>
       <label>Load blocks <input type="file" accept=".json" onChange={async event => {
         const file = event.target.files?.[0]
@@ -49,4 +57,4 @@ export function Blocks({ onRun }: { onRun: (code: string) => void }) {
     <div ref={host} style={{ flex: 1, minHeight: 250 }} />
     <details><summary>Generated Logo</summary><pre>{code}</pre></details>
   </section>
-}
+})
