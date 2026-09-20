@@ -1,3 +1,6 @@
+import { ExamplesMenu } from './ExamplesMenu'
+import type { Example } from '../examples/catalog'
+
 interface ToolbarProps {
   onRun: () => void
   onStop: () => void
@@ -5,13 +8,15 @@ interface ToolbarProps {
   onSave: () => void
   onLoad: () => void
   onHelp: () => void
+  onExample: (example: Example) => void
 }
 
-export function Toolbar({ onRun, onStop, onClear, onSave, onLoad, onHelp }: ToolbarProps) {
+export function Toolbar({ onRun, onStop, onClear, onSave, onLoad, onHelp, onExample }: ToolbarProps) {
   return (
     <div className="toolbar">
       <span className="toolbar-title">UCBLogo Web</span>
       <div className="toolbar-buttons">
+        <ExamplesMenu onSelect={onExample} />
         <button onClick={onRun} title="Run (Ctrl+Enter)">
           <span className="btn-icon">▶</span> Run
         </button>
