@@ -30,3 +30,7 @@ pnpm-debug.log*
 
 # Test coverage
 coverage/
+
+# CI reports
+playwright-report/
+test-results/
