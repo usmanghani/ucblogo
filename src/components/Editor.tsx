@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react'
 import MonacoEditor from '@monaco-editor/react'
+import { useProgramSession } from '../session/useProgramSession'
 import type { SourceLocation } from '../interpreter/errors'
 
 export interface EditorHandle {
@@ -12,6 +13,7 @@ export interface EditorHandle {
 export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function Editor({ onRun }, ref) {
   const onRunRef = useRef(onRun)
   onRunRef.current = onRun
+  const session = useProgramSession('TO rainbow_spiral :size :angle\n  IF :size > 300 [STOP]\n  SETPENCOLOR (SETBGCOLOR)\n  FORWARD :size\n  RIGHT :angle\n  rainbow_spiral (:size + 2) :angle\nEND\n\nCS\nrainbow_spiral 1 89\n')
   const editorRef = useRef<unknown>(null)
   const monacoRef = useRef<any>(null)
   const modelRef = useRef<any>(null)
@@ -19,10 +21,11 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
   useImperativeHandle(ref, () => ({
     getValue: () => {
       const ed = editorRef.current as { getValue: () => string } | null
-      return ed?.getValue() ?? ''
+      return ed?.getValue() ?? session.program
     },
     setValue: (v: string) => {
       const ed = editorRef.current as { setValue: (v: string) => void } | null
+      session.saveProgram(v)
       ed?.setValue(v)
     },
     showError: (message: string, location?: SourceLocation) => {
@@ -194,10 +197,17 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
 
   return (
     <div className="editor-container">
+      <div className="session-controls">
+        <button type="button" onClick={() => {
+          if (window.confirm('Clear this program and its saved browser session?')) session.clearSession()
+        }}>Clear saved session</button>
+        <span role="status">{session.error || 'Program saved in this tab when edited.'}</span>
+      </div>
       <MonacoEditor
         height="100%"
         language="logo"
-        defaultValue={'TO rainbow_spiral :size :angle\n  IF :size > 300 [STOP]\n  SETPENCOLOR (SETBGCOLOR)\n  FORWARD :size\n  RIGHT :angle\n  rainbow_spiral (:size + 2) :angle\nEND\n\nCS\nrainbow_spiral 1 89\n'}
+        value={session.program}
+        onChange={value => session.saveProgram(value ?? '')}
         onMount={handleMount}
         theme="logo-theme"
         options={{
