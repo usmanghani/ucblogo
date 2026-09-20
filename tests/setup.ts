@@ -29,6 +29,6 @@ function createMockCtx() {
   }
 }
 
-HTMLCanvasElement.prototype.getContext = function () {
+if (typeof HTMLCanvasElement !== 'undefined') HTMLCanvasElement.prototype.getContext = function () {
   return createMockCtx()
 } as unknown as typeof HTMLCanvasElement.prototype.getContext

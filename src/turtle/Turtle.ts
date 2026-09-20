@@ -54,24 +54,29 @@ export const LOGO_COLORS: Record<number, string> = {
   15: '#ffffff', // white
 }
 
+type DrawingCanvas = HTMLCanvasElement | OffscreenCanvas
+function newCanvas(): DrawingCanvas {
+  return typeof document === 'undefined' ? new OffscreenCanvas(1, 1) : document.createElement('canvas')
+}
+
 export class Turtle {
-  private ctx: CanvasRenderingContext2D
-  private canvas: HTMLCanvasElement
+  private ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+  private canvas: DrawingCanvas
   /** Offscreen layer holding pen strokes only; the turtle marker is
    *  composited on top at display time so it can move without erasing lines. */
-  private buf: HTMLCanvasElement
-  private bctx: CanvasRenderingContext2D
+  private buf: DrawingCanvas
+  private bctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
   private state: TurtleState
   private callbacks: TurtleCallbacks
   private width: number
   private height: number
-  constructor(canvas: HTMLCanvasElement, callbacks: TurtleCallbacks = {}) {
+  constructor(canvas: DrawingCanvas, callbacks: TurtleCallbacks = {}) {
     this.canvas = canvas
-    this.ctx = canvas.getContext('2d')!
-    this.buf = document.createElement('canvas')
+    this.ctx = canvas.getContext('2d')! as CanvasRenderingContext2D
+    this.buf = newCanvas()
     this.buf.width = canvas.width
     this.buf.height = canvas.height
-    this.bctx = this.buf.getContext('2d')!
+    this.bctx = this.buf.getContext('2d')! as CanvasRenderingContext2D
     this.callbacks = callbacks
     this.width = canvas.width
     this.height = canvas.height
@@ -91,6 +96,14 @@ export class Turtle {
     this.render()
   }
 
+  /** Adopt a completed isolated run without rerunning generated code on the UI thread. */
+  applySnapshot(image: ImageBitmap, state: TurtleState): void {
+    this.state = { ...state }
+    this.bctx.clearRect(0, 0, this.width, this.height)
+    this.bctx.drawImage(image, 0, 0)
+    this.notify()
+  }
+
   getState(): TurtleState {
     return { ...this.state }
   }
@@ -99,12 +112,12 @@ export class Turtle {
   setSize(width: number, height: number): void {
     if (width <= 0 || height <= 0) return
     // Copy existing strokes before resizing (resizing clears a canvas).
-    let saved: HTMLCanvasElement | null = null
+    let saved: DrawingCanvas | null = null
     if (this.buf.width > 0 && this.buf.height > 0) {
-      saved = document.createElement('canvas')
+      saved = newCanvas()
       saved.width = this.buf.width
       saved.height = this.buf.height
-      saved.getContext('2d')!.drawImage(this.buf, 0, 0)
+      ;(saved.getContext('2d')! as CanvasRenderingContext2D).drawImage(this.buf, 0, 0)
     }
     this.width = width
     this.height = height
