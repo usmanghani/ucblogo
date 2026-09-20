@@ -60,3 +60,11 @@ it('batches drawing updates but publishes each WAIT frame before pausing', async
   expect(state).toHaveBeenCalledTimes(2)
   expect(state.mock.calls[1][0].y).toBe(100)
 })
+
+it('LABEL publishes its drawing even without a subsequent movement', () => {
+  const update = vi.fn()
+  const turtle = new Turtle(document.createElement('canvas'), { onStateChange: update })
+  update.mockClear()
+  turtle.label('3')
+  expect(update).toHaveBeenCalledOnce()
+})

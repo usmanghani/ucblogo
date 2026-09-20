@@ -371,6 +371,7 @@ export class Turtle {
     this.bctx.font = `${this.state.penSize * 12}px monospace`
     this.bctx.fillText(text, sx, sy)
     this.bctx.restore()
+    this.notify()
   }
 
   private notify(): void {
