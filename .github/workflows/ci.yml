@@ -3,7 +3,6 @@ name: CI
 on:
   push:
   pull_request:
-  deployment_status:
   workflow_dispatch:
 
 permissions:
@@ -11,52 +10,21 @@ permissions:
   deployments: read
 
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event.deployment.id || '' }}
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-jobs:
-  target:
-    name: Resolve test target
-    if: github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success'
-    runs-on: ubuntu-latest
-    outputs:
-      ref: ${{ steps.target.outputs.ref }}
-      preview: ${{ steps.target.outputs.preview }}
-    steps:
-      - uses: actions/github-script@v7
-        id: target
-        with:
-          script: |
-            const sha = context.payload.pull_request?.head.sha || context.payload.deployment?.sha || context.sha;
-            const ref = context.payload.deployment?.sha || context.sha;
-            core.setOutput('ref', ref);
-            const {owner, repo} = context.repo;
-            const deployments = await github.paginate(github.rest.repos.listDeployments, {owner, repo, sha, per_page: 100});
-            for (const deployment of deployments) {
-              if (deployment.creator?.login !== 'vercel[bot]') continue;
-              const {data: statuses} = await github.rest.repos.listDeploymentStatuses({owner, repo, deployment_id: deployment.id, per_page: 1});
-              const latest = statuses[0];
-              if (latest?.state !== 'success') continue;
-              const address = latest.environment_url || latest.target_url;
-              if (!address) continue;
-              const url = new URL(address);
-              if (url.protocol !== 'https:' || !url.hostname.endsWith('.vercel.app')) continue;
-              core.setOutput('preview', url.origin);
-              await core.summary.addRaw(`Testing Vercel deployment for ${sha}: ${url.origin}`).write();
-              return;
-            }
-            core.setOutput('preview', '');
-            await core.summary.addRaw(`Vercel tests skipped: no successful Vercel deployment exists for ${sha}.`).write();
+env:
+  TEST_REF: ${{ github.event.pull_request.head.sha || github.sha }}
 
+jobs:
   unit:
     name: Unit tests, lint, and build
-    needs: target
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.target.outputs.ref }}
+          ref: ${{ env.TEST_REF }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -75,13 +43,12 @@ jobs:
 
   browser:
     name: Browser tests
-    needs: target
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.target.outputs.ref }}
+          ref: ${{ env.TEST_REF }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -99,16 +66,35 @@ jobs:
             test-results/
           if-no-files-found: ignore
 
+  deployment:
+    name: Wait for Vercel deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    outputs:
+      preview: ${{ steps.wait.outputs.preview }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TEST_REF }}
+          persist-credentials: false
+      - uses: actions/github-script@v7
+        id: wait
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.VERCEL_AUTOMATION_BYPASS_SECRET || '' }}
+        with:
+          script: |
+            const { run } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/wait-for-vercel.mjs`);
+            await run({ github, context, core });
+
   vercel:
-    name: Vercel preview tests
-    needs: target
-    if: needs.target.outputs.preview != ''
+    name: Vercel deployment tests
+    needs: deployment
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.target.outputs.ref }}
+          ref: ${{ env.TEST_REF }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -116,9 +102,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - name: Test deployed UI and API routing
+        run: npm run test:e2e
         env:
-          PLAYWRIGHT_BASE_URL: ${{ needs.target.outputs.preview }}
+          PLAYWRIGHT_BASE_URL: ${{ needs.deployment.outputs.preview }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.VERCEL_AUTOMATION_BYPASS_SECRET || '' }}
+      - name: Verify live assistant credentials and streaming
+        run: npm run test:live
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ needs.deployment.outputs.preview }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.VERCEL_AUTOMATION_BYPASS_SECRET || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
@@ -131,24 +123,18 @@ jobs:
 
   gate:
     name: CI gate
-    if: always() && (github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success')
-    needs: [target, unit, browser, vercel]
+    if: always()
+    needs: [unit, browser, deployment, vercel]
     runs-on: ubuntu-latest
     steps:
-      - name: Require all applicable checks
+      - name: Require local and deployed checks
         env:
-          TARGET: ${{ needs.target.result }}
           UNIT: ${{ needs.unit.result }}
           BROWSER: ${{ needs.browser.result }}
+          DEPLOYMENT: ${{ needs.deployment.result }}
           VERCEL: ${{ needs.vercel.result }}
-          PREVIEW: ${{ needs.target.outputs.preview }}
         run: |
-          test "$TARGET" = success
           test "$UNIT" = success
           test "$BROWSER" = success
-          if [ -n "$PREVIEW" ]; then
-            test "$VERCEL" = success
-          else
-            test "$VERCEL" = skipped
-            echo 'Vercel preview tests skipped: no deployment for this commit.' >> "$GITHUB_STEP_SUMMARY"
-          fi
+          test "$DEPLOYMENT" = success
+          test "$VERCEL" = success
