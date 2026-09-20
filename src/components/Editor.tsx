@@ -1,15 +1,20 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react'
 import MonacoEditor from '@monaco-editor/react'
 import { useProgramSession } from '../session/useProgramSession'
+import type { SourceLocation } from '../interpreter/errors'
 
 export interface EditorHandle {
   getValue: () => string
   setValue: (v: string) => void
+  showError: (message: string, location?: SourceLocation) => void
+  clearErrors: () => void
 }
 
 export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function Editor({ onRun }, ref) {
   const session = useProgramSession('TO rainbow_spiral :size :angle\n  IF :size > 300 [STOP]\n  SETPENCOLOR (SETBGCOLOR)\n  FORWARD :size\n  RIGHT :angle\n  rainbow_spiral (:size + 2) :angle\nEND\n\nCS\nrainbow_spiral 1 89\n')
   const editorRef = useRef<unknown>(null)
+  const monacoRef = useRef<any>(null)
+  const modelRef = useRef<any>(null)
 
   useImperativeHandle(ref, () => ({
     getValue: () => {
@@ -21,10 +26,35 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
       session.saveProgram(v)
       ed?.setValue(v)
     },
+    showError: (message: string, location?: SourceLocation) => {
+      const ed = editorRef.current as any
+      const model = modelRef.current ?? ed?.getModel?.()
+      if (!ed || !model || !location) return
+      const line = Math.max(1, Math.min(location.line, model.getLineCount()))
+      const column = Math.max(1, Math.min(location.col, model.getLineMaxColumn(line)))
+      const endColumn = Math.min(column + 1, model.getLineMaxColumn(line))
+      monacoRef.current?.editor.setModelMarkers(model, 'ucblogo', [{
+        severity: monacoRef.current.MarkerSeverity.Error,
+        message,
+        startLineNumber: line,
+        startColumn: column,
+        endLineNumber: line,
+        endColumn: Math.max(column + 1, endColumn),
+      }])
+      ed.setPosition?.({ lineNumber: line, column })
+      ed.revealPositionInCenter?.({ lineNumber: line, column })
+      ed.focus?.()
+    },
+    clearErrors: () => {
+      const model = modelRef.current ?? (editorRef.current as any)?.getModel?.()
+      if (model) monacoRef.current?.editor.setModelMarkers(model, 'ucblogo', [])
+    },
   }))
 
   const handleMount = (editorInst: unknown, monaco: unknown) => {
     editorRef.current = editorInst
+    monacoRef.current = monaco
+    modelRef.current = (editorInst as any).getModel?.()
     const m = monaco as {
       languages: {
         register: (args: { id: string }) => void

@@ -1,8 +1,10 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { Interpreter } from './interpreter/interpreter'
+import type { LogoError } from './interpreter/errors'
 import { Turtle, type TurtleState } from './turtle/Turtle'
 import { VirtualFS } from './filesystem/VirtualFS'
 import { Editor } from './components/Editor'
+import type { EditorHandle } from './components/Editor'
 import { TurtleCanvas } from './components/TurtleCanvas'
 import { REPL } from './components/REPL'
 import { Toolbar } from './components/Toolbar'
@@ -19,7 +21,7 @@ export default function App() {
   const turtleRef = useRef<Turtle | null>(null)
   const fsRef = useRef<VirtualFS | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const editorRef = useRef<{ getValue: () => string; setValue: (v: string) => void } | null>(null)
+  const editorRef = useRef<EditorHandle | null>(null)
 
   // Initialize the filesystem once on mount (hydrate from IndexedDB).
   useEffect(() => {
@@ -44,6 +46,12 @@ export default function App() {
       turtle: t,
       fs: fsRef.current ?? undefined,
       onOutput: (text) => setOutput((prev) => prev + text),
+      onError: (error) => {
+        const message = error.message || String(error)
+        setOutput((prev) => prev + `${message}\n`)
+        const location = (error as LogoError).location
+        editorRef.current?.showError(message, location)
+      },
     })
     interpreterRef.current = interp
     setTurtleState(t.getState())
@@ -52,6 +60,7 @@ export default function App() {
   const runCode = useCallback(() => {
     const code = editorRef.current?.getValue() ?? ''
     setOutput('')
+    editorRef.current?.clearErrors()
     const interp = interpreterRef.current
     if (interp) interp.run(code)
   }, [])

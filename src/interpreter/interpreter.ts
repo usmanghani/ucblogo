@@ -17,6 +17,7 @@ export interface InterpreterOptions {
   turtle?: Turtle
   fs?: VirtualFS
   onOutput?: (text: string) => void
+  onError?: (error: LogoError | Error) => void
 }
 
 export class Interpreter {
@@ -25,12 +26,14 @@ export class Interpreter {
   turtle?: Turtle
   fs?: VirtualFS
   private onOutput?: (text: string) => void
+  private onError?: (error: LogoError | Error) => void
 
   constructor(options: InterpreterOptions = {}) {
     this.env = Environment.global()
     this.turtle = options.turtle
     this.fs = options.fs
     this.onOutput = options.onOutput
+    this.onError = options.onError
 
     const ctx: EvalContext = {
       env: this.env,
@@ -45,17 +48,16 @@ export class Interpreter {
 
   /** Run a full Logo program. Returns the final value. */
   run(source: string): string {
-    const tokens = tokenize(source)
-    const ast = parse(tokens, this.evaluator)
     try {
+      const tokens = tokenize(source)
+      const ast = parse(tokens, this.evaluator)
       const result = this.evaluator.runProgram(ast, this.env)
       return toLogoString(result)
     } catch (e) {
-      if (e instanceof LogoError) {
-        this.onOutput?.(`${e.message}\n`)
-        return ''
-      }
-      throw e
+      const error = e instanceof Error ? e : new Error(String(e))
+      this.onError?.(error)
+      if (!this.onError && error instanceof LogoError) this.onOutput?.(`${error.message}\n`)
+      return ''
     }
   }
 

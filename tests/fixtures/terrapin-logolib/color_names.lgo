@@ -1,0 +1,36 @@
+to show.color.names
+    cs
+    pu ht
+    setpos [0 225]
+    (local "max "rgb)
+    make "max 16 ; use count colors for the entire list
+    make "max :max - 1
+    for "i 0 :max [
+        pu
+        if (remainder :i 2) = 1 [
+            setx xcor + 120
+        ] [
+            sety ycor - 25 setx 0
+        ]
+        make "rgb color.name.to.rgb item (:i + 1) colors
+        pd
+        tt (list :rgb)
+        pu
+        setx xcor + 100
+        pd
+        tt item (:i + 1) colors
+    ]
+end
+
+; Output the RGB list for a given color name.
+; NOTE: Logo 4 has the procedure COLOR built in that does the very same.
+
+to color.name.to.rgb :name
+    LOCAL "old make "old PC
+    SETPC :name
+    LOCAL "result make "result PC
+    SETPC :old
+    OP :result
+end
+
+show.color.names

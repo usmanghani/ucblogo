@@ -22,15 +22,26 @@ export type LogoErrorCode =
   | 'OUT_OF_BOUNDS' // index out of bounds
   | 'USER' // user error via THROW/ERROR
 
+export interface SourceLocation {
+  line: number
+  col: number
+  endLine?: number
+  endCol?: number
+}
+
 export class LogoError extends Error {
   code: LogoErrorCode
   logoNumber?: number
+  location?: SourceLocation
 
-  constructor(message: string, code: LogoErrorCode = 'USER', logoNumber?: number) {
+  constructor(message: string, code: LogoErrorCode = 'USER', logoNumber?: number, location?: SourceLocation) {
     super(message)
     this.name = 'LogoError'
     this.code = code
     this.logoNumber = logoNumber
+    // Existing parser call sites historically passed the source line as the
+    // third argument. Preserve that information as a navigable location.
+    this.location = location ?? (typeof logoNumber === 'number' ? { line: logoNumber, col: 1 } : undefined)
   }
 }
 

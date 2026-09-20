@@ -39,6 +39,11 @@ export class Environment {
     this.vars.set(name, value)
   }
 
+  assign(name: string, value: LogoValue): void {
+    if (this.vars.has(name) || !this.parent) this.vars.set(name, value)
+    else this.parent.assign(name, value)
+  }
+
   get(name: string): LogoValue {
     let env: Environment | null = this
     while (env) {

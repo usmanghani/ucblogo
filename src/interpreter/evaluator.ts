@@ -41,6 +41,8 @@ export interface PrimitiveDef {
 export class Evaluator implements AritySource {
   private primitives = new Map<string, PrimitiveDef>()
   private ctx: EvalContext
+  private steps = 0
+  private readonly maxSteps = 100000
 
   constructor(ctx: EvalContext) {
     this.ctx = ctx
@@ -76,6 +78,18 @@ export class Evaluator implements AritySource {
 
   /** Evaluate a single node. */
   eval(node: ASTNode, env: Environment): LogoValue {
+    if (++this.steps > this.maxSteps) throw new LogoError('Execution limit exceeded', 'USER')
+    try {
+      return this.evalNode(node, env)
+    } catch (e) {
+      if (e instanceof LogoError && !e.location && 'line' in node && typeof node.line === 'number') {
+        e.location = { line: node.line, col: typeof node.col === 'number' ? node.col : 1 }
+      }
+      throw e
+    }
+  }
+
+  private evalNode(node: ASTNode, env: Environment): LogoValue {
     switch (node.type) {
       case 'literal':
         return node.value
@@ -134,6 +148,15 @@ export class Evaluator implements AritySource {
    * Evaluate a procedure call with tail-call optimization.
    */
   private evalCall(node: ProcCallNode, env: Environment): LogoValue {
+    try {
+      return this.evalCallInner(node, env)
+    } catch (e) {
+      if (e instanceof LogoError && !e.location) e.location = { line: node.line, col: node.col }
+      throw e
+    }
+  }
+
+  private evalCallInner(node: ProcCallNode, env: Environment): LogoValue {
     const name = node.name.toUpperCase()
     const prim = this.primitives.get(name)
 
@@ -148,7 +171,10 @@ export class Evaluator implements AritySource {
       if (args.length < prim.minArgs) {
         throw new LogoError(`${name} needs more inputs`, 'NEED_MORE_INPUTS')
       }
-      return prim.fn(args, this.ctx)
+      const previous = this.ctx.env
+      this.ctx.env = env
+      try { return prim.fn(args, this.ctx) }
+      finally { this.ctx.env = previous }
     }
 
     // User-defined procedure.
@@ -233,7 +259,7 @@ export class Evaluator implements AritySource {
         const cond = node.args[0]
         const body = node.args[1]
         let result: LogoValue = ''
-        while (truthy(this.eval(cond, env))) {
+        while (truthy(this.evalInstructionList(cond, env))) {
           result = this.evalInstructionList(body, env)
         }
         return result
@@ -242,7 +268,7 @@ export class Evaluator implements AritySource {
         const cond = node.args[0]
         const body = node.args[1]
         let result: LogoValue = ''
-        while (!truthy(this.eval(cond, env))) {
+        while (!truthy(this.evalInstructionList(cond, env))) {
           result = this.evalInstructionList(body, env)
         }
         return result
@@ -301,6 +327,7 @@ export class Evaluator implements AritySource {
         const body = node.args[0]
         let result: LogoValue = ''
         while (true) {
+          if (++this.steps > this.maxSteps) throw new LogoError('Execution limit exceeded', 'USER')
           result = this.evalInstructionList(body, env)
         }
         return result
@@ -431,6 +458,7 @@ export class Evaluator implements AritySource {
     return this.evalSequence(ast, env)
   }
   runProgram(nodes: ASTNode[], env: Environment): LogoValue {
+    this.steps = 0
     try {
       return this.evalSequence(nodes, env)
     } catch (e) {
