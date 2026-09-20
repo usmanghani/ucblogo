@@ -15,8 +15,10 @@ export const checkAssistantQuota: QuotaCheck = async request => {
     console.error('Pip quota check refused an unexpected server environment')
     return unavailable()
   }
+  let ruleId = 'pip-assistant-ip'
   try {
     for (const [id, key] of [['pip-assistant-ip', undefined], ['pip-assistant-global', 'all-users']] as const) {
+      ruleId = id
       const result = await checkRateLimit(id, { request, ...(key ? { rateLimitKey: key } : {}) })
       if (result.error === 'not-found') {
         console.error(`Pip quota rule is missing: ${id}`)
@@ -26,9 +28,19 @@ export const checkAssistantQuota: QuotaCheck = async request => {
         status: 429, headers: { 'Cache-Control': 'no-store', 'Retry-After': '60' },
       })
     }
-  } catch {
-    // Do not log headers, provider credentials, prompts, or upstream bodies.
-    console.error('Pip quota service is unavailable; inference was not started')
+  } catch (error) {
+    // Extract only the SDK's known numeric status; never log arbitrary error text,
+    // request headers, credentials, prompts, or upstream response bodies.
+    const message = error instanceof Error ? error.message : ''
+    const status = /^Unexpected rate-limit API response status '[a-z-]+': (\d{3})$/.exec(message)?.[1]
+    console.error('Pip quota service is unavailable; inference was not started', {
+      ruleId,
+      reason: status ? 'unexpected-http-status' : message.startsWith('Could not determine rate limit key.') ? 'missing-client-ip' : 'sdk-error',
+      httpStatus: status ? Number(status) : undefined,
+      bypassConfigured: Boolean(process.env.VERCEL_AUTOMATION_BYPASS_SECRET),
+      hostPresent: Boolean(request.headers.get('host')),
+      clientIpPresent: Boolean(request.headers.get('x-real-ip')),
+    })
     return unavailable()
   }
 }

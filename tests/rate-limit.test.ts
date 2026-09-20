@@ -41,3 +41,15 @@ it('only exempts loopback development outside Vercel', async () => {
   expect((await checkAssistantQuota(request()))?.status).toBe(503)
   expect(check).not.toHaveBeenCalled()
 })
+
+it('logs only safe SDK diagnostics and never arbitrary error text', async () => {
+  const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+  try {
+    check.mockRejectedValueOnce(new Error("Unexpected rate-limit API response status 'pip-assistant-ip': 302"))
+    expect((await checkAssistantQuota(request()))?.status).toBe(503)
+    expect(log.mock.calls[0][1]).toMatchObject({ ruleId: 'pip-assistant-ip', reason: 'unexpected-http-status', httpStatus: 302 })
+    check.mockRejectedValueOnce(new Error('private credential'))
+    await checkAssistantQuota(request())
+    expect(JSON.stringify(log.mock.calls)).not.toContain('private credential')
+  } finally { log.mockRestore() }
+})
