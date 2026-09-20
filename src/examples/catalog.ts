@@ -1,4 +1,5 @@
 import farm from '../../examples/farm.lgo?raw'
+import rocketLaunch from '../../examples/rocket-launch.lgo?raw'
 import rocket from '../../examples/rocket.lgo?raw'
 import soccer from '../../examples/soccer.lgo?raw'
 import cat from '../../examples/cat.lgo?raw'
@@ -8,6 +9,7 @@ export const examples = [
   { id: 'cat', title: 'Cat with whiskers', source: cat },
   { id: 'farm', title: 'Farm', source: farm },
   { id: 'rocket', title: 'Rocket ship', source: rocket },
+  { id: 'rocket-launch', title: 'Rocket launch (animated)', source: rocketLaunch },
   { id: 'soccer', title: 'Soccer ball', source: soccer },
 ] as const
 export type Example = typeof examples[number]

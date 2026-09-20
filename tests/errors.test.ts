@@ -17,7 +17,7 @@ describe('interpreter diagnostics', () => {
     new Interpreter({ onOutput: text => { output += text } }).run('PRINT "|hello [world]!|')
     expect(output).toBe('hello [world]!\n')
   })
-  it.each(['PLAY [C D E]', 'TELL 1', 'STAMPRECT 10 20', 'WAIT 60'])(
+  it.each(['PLAY [C D E]', 'TELL 1', 'STAMPRECT 10 20'])(
     'reports unsupported capabilities instead of silently succeeding: %s', (source) => {
       let received: Error | undefined
       const interpreter = new Interpreter({ onError: (error) => { received = error } })

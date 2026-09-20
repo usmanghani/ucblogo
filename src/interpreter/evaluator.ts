@@ -38,7 +38,52 @@ export interface PrimitiveDef {
   isSpecial?: boolean
 }
 
+type Pause = { milliseconds: number } | { cooperate: true }
+
 export class Evaluator implements AritySource {
+  private completeSync(iterator: Generator<Pause, LogoValue, void>): LogoValue {
+    try {
+      let next = iterator.next()
+      while (!next.done) {
+        if ('milliseconds' in next.value) iterator.throw(new LogoError('WAIT requires animated execution; use Run in the editor', 'USER'))
+        next = iterator.next()
+      }
+      return next.value
+    } finally { iterator.return('') }
+  }
+
+  eval(node: ASTNode, env: Environment): LogoValue {
+    return this.completeSync(this.evalSteps(node, env))
+  }
+  evalSequence(nodes: ASTNode[], env: Environment): LogoValue {
+    return this.completeSync(this.evalSequenceSteps(nodes, env))
+  }
+  evalTemplate(items: LogoValue[], env: Environment): LogoValue {
+    return this.completeSync(this.evalTemplateSteps(items, env))
+  }
+  runProgram(nodes: ASTNode[], env: Environment): LogoValue {
+    return this.completeSync(this.runProgramSteps(nodes, env))
+  }
+  async runProgramAsync(nodes: ASTNode[], env: Environment, signal: AbortSignal): Promise<LogoValue> {
+    const iterator = this.runProgramSteps(nodes, env)
+    try {
+      signal.throwIfAborted()
+      let next = iterator.next()
+      while (!next.done) {
+        const milliseconds = 'milliseconds' in next.value ? next.value.milliseconds : 0
+        await new Promise<void>((resolve, reject) => {
+          const abort = () => { clearTimeout(timer); reject(signal.reason) }
+          const timer = setTimeout(() => { signal.removeEventListener('abort', abort); resolve() }, milliseconds)
+          signal.addEventListener('abort', abort, { once: true })
+          if (signal.aborted) abort()
+        })
+        signal.throwIfAborted()
+        next = iterator.next()
+      }
+      return next.value
+    } finally { iterator.return('') }
+  }
+
   private primitives = new Map<string, PrimitiveDef>()
   private ctx: EvalContext
   private steps = 0
@@ -68,19 +113,26 @@ export class Evaluator implements AritySource {
   }
 
   /** Evaluate a sequence of statements, returning the last value. */
-  evalSequence(nodes: ASTNode[], env: Environment): LogoValue {
+  *evalSequenceSteps(nodes: ASTNode[], env: Environment): Generator<Pause, LogoValue, void> {
     if (nodes.length === 0) return ''
     for (let i = 0; i < nodes.length - 1; i++) {
-      this.eval(nodes[i], env)
+      (yield* this.evalSteps(nodes[i], env))
     }
-    return this.eval(nodes[nodes.length - 1], env)
+    return (yield* this.evalSteps(nodes[nodes.length - 1], env))
+  }
+
+  private *evalManySteps(nodes: ASTNode[], env: Environment): Generator<Pause, LogoValue[], void> {
+    const values: LogoValue[] = []
+    for (const node of nodes) values.push((yield* this.evalSteps(node, env)))
+    return values
   }
 
   /** Evaluate a single node. */
-  eval(node: ASTNode, env: Environment): LogoValue {
+  *evalSteps(node: ASTNode, env: Environment): Generator<Pause, LogoValue, void> {
     if (++this.steps > this.maxSteps) throw new LogoError('Execution limit exceeded', 'USER')
+    if (this.steps % 250 === 0) yield { cooperate: true }
     try {
-      return this.evalNode(node, env)
+      return (yield* this.evalNodeSteps(node, env))
     } catch (e) {
       if (e instanceof LogoError && !e.location && 'line' in node && typeof node.line === 'number') {
         e.location = { line: node.line, col: typeof node.col === 'number' ? node.col : 1 }
@@ -89,20 +141,20 @@ export class Evaluator implements AritySource {
     }
   }
 
-  private evalNode(node: ASTNode, env: Environment): LogoValue {
+  private *evalNodeSteps(node: ASTNode, env: Environment): Generator<Pause, LogoValue, void> {
     switch (node.type) {
       case 'literal':
         return node.value
       case 'varref':
         return env.get(node.name.toUpperCase())
       case 'list':
-        return new LogoList(node.items.map((item) => this.eval(item, env)))
+        return new LogoList((yield* this.evalManySteps(node.items, env)))
       case 'array':
-        return new LogoArray(node.items.length, 1, this.eval(node.items[0] ?? '', env))
+        return new LogoArray(node.items.length, 1, (yield* this.evalSteps(node.items[0] ?? '', env)))
       case 'infix':
-        return this.evalInfix(node, env)
+        return (yield* this.evalInfixSteps(node, env))
       case 'call':
-        return this.evalCall(node, env)
+        return (yield* this.evalCallSteps(node, env))
       case 'procdef':
         // Register the procedure definition.
         Environment.setProc(node.name, {
@@ -117,9 +169,9 @@ export class Evaluator implements AritySource {
   }
 
   /** Evaluate an infix expression. */
-  private evalInfix(node: Extract<ASTNode, { type: 'infix' }>, env: Environment): LogoValue {
-    const left = this.eval(node.left, env)
-    const right = this.eval(node.right, env)
+  private *evalInfixSteps(node: Extract<ASTNode, { type: 'infix' }>, env: Environment): Generator<Pause, LogoValue, void> {
+    const left = (yield* this.evalSteps(node.left, env))
+    const right = (yield* this.evalSteps(node.right, env))
     return this.applyInfix(node.op, left, right)
   }
 
@@ -147,29 +199,35 @@ export class Evaluator implements AritySource {
   /**
    * Evaluate a procedure call with tail-call optimization.
    */
-  private evalCall(node: ProcCallNode, env: Environment): LogoValue {
+  private *evalCallSteps(node: ProcCallNode, env: Environment): Generator<Pause, LogoValue, void> {
     try {
-      return this.evalCallInner(node, env)
+      return (yield* this.evalCallInnerSteps(node, env))
     } catch (e) {
       if (e instanceof LogoError && !e.location) e.location = { line: node.line, col: node.col }
       throw e
     }
   }
 
-  private evalCallInner(node: ProcCallNode, env: Environment): LogoValue {
+  private *evalCallInnerSteps(node: ProcCallNode, env: Environment): Generator<Pause, LogoValue, void> {
     const name = node.name.toUpperCase()
     const prim = this.primitives.get(name)
 
     // Special forms handled by the evaluator (IF, IFELSE, REPEAT, ...).
     if (prim && prim.isSpecial) {
-      return this.evalSpecial(prim, node, env)
+      return (yield* this.evalSpecialSteps(prim, node, env))
     }
 
     // Primitive: evaluate args, call fn.
     if (prim) {
-      const args = node.args.map((a) => this.eval(a, env))
+      const args = (yield* this.evalManySteps(node.args, env))
       if (args.length < prim.minArgs) {
         throw new LogoError(`${name} needs more inputs`, 'NEED_MORE_INPUTS')
+      }
+      if (name === 'WAIT') {
+        const ticks = num(args[0])
+        if (!Number.isFinite(ticks) || ticks < 0 || ticks > 3600) throw new LogoError('WAIT needs a number from 0 to 3600 ticks', 'BAD_INPUT')
+        yield { milliseconds: ticks * 1000 / 60 }
+        return ''
       }
       const previous = this.ctx.env
       this.ctx.env = env
@@ -184,7 +242,7 @@ export class Evaluator implements AritySource {
     }
 
     // Evaluate args in the caller's environment.
-    const args = node.args.map((a) => this.eval(a, env))
+    const args = (yield* this.evalManySteps(node.args, env))
 
     // Create a new frame (dynamic scoping: parent = caller).
     const newEnv = new Environment(env)
@@ -194,14 +252,14 @@ export class Evaluator implements AritySource {
 
     // Macro: evaluate body, then evaluate the returned code.
     if (proc.isMacro) {
-      const code = this.evalSequence(this.parseProcBody(proc), newEnv)
-      const macroResult = this.expandMacro(code, newEnv)
+      const code = (yield* this.evalSequenceSteps(this.parseProcBody(proc), newEnv))
+      const macroResult = (yield* this.expandMacroSteps(code, newEnv))
       return macroResult
     }
 
     // Tail call: evaluate the body's last instruction in the new frame.
     try {
-      return this.evalSequence(this.parseProcBody(proc), newEnv)
+      return (yield* this.evalSequenceSteps(this.parseProcBody(proc), newEnv))
     } catch (e) {
       if (e instanceof OutputSignal) return e.value
       throw e
@@ -209,12 +267,12 @@ export class Evaluator implements AritySource {
   }
 
   /** Expand a macro result (a list of instructions) and evaluate it. */
-  private expandMacro(code: LogoValue, env: Environment): LogoValue {
+  private *expandMacroSteps(code: LogoValue, env: Environment): Generator<Pause, LogoValue, void> {
     if (isList(code)) {
       // Treat the list as a program: parse and evaluate.
       const text = code.items.map((item) => String(item)).join(' ')
       const ast = parse(tokenize(text), this)
-      return this.evalSequence(ast, env)
+      return (yield* this.evalSequenceSteps(ast, env))
     }
     return code
   }
@@ -223,35 +281,35 @@ export class Evaluator implements AritySource {
    * Evaluate a special form. These receive the AST node (not evaluated args)
    * so they can control evaluation (lazy branches, loops, etc.).
    */
-  private evalSpecial(_prim: PrimitiveDef, node: ProcCallNode, env: Environment): LogoValue {
+  private *evalSpecialSteps(_prim: PrimitiveDef, node: ProcCallNode, env: Environment): Generator<Pause, LogoValue, void> {
     const name = node.name.toUpperCase()
 
     switch (name) {
       case 'IF': {
-        const cond = this.eval(node.args[0], env)
+        const cond = (yield* this.evalSteps(node.args[0], env))
         const thenBranch = node.args[1]
         if (truthy(cond)) {
-          return this.evalInstructionList(thenBranch, env)
+          return (yield* this.evalInstructionListSteps(thenBranch, env))
         }
         return ''
       }
       case 'IFELSE': {
-        const cond = this.eval(node.args[0], env)
+        const cond = (yield* this.evalSteps(node.args[0], env))
         const thenBranch = node.args[1]
         const elseBranch = node.args[2]
         if (truthy(cond)) {
-          return this.evalInstructionList(thenBranch, env)
+          return (yield* this.evalInstructionListSteps(thenBranch, env))
         }
-        return this.evalInstructionList(elseBranch, env)
+        return (yield* this.evalInstructionListSteps(elseBranch, env))
       }
       case 'REPEAT': {
-        const count = this.eval(node.args[0], env)
+        const count = (yield* this.evalSteps(node.args[0], env))
         const body = node.args[1]
         const n = num(count)
         let result: LogoValue = ''
         for (let i = 0; i < n; i++) {
           env.set('REPCOUNT', i + 1)
-          result = this.evalInstructionList(body, env)
+          result = (yield* this.evalInstructionListSteps(body, env))
         }
         return result
       }
@@ -259,8 +317,8 @@ export class Evaluator implements AritySource {
         const cond = node.args[0]
         const body = node.args[1]
         let result: LogoValue = ''
-        while (truthy(this.evalInstructionList(cond, env))) {
-          result = this.evalInstructionList(body, env)
+        while (truthy((yield* this.evalInstructionListSteps(cond, env)))) {
+          result = (yield* this.evalInstructionListSteps(body, env))
         }
         return result
       }
@@ -268,8 +326,8 @@ export class Evaluator implements AritySource {
         const cond = node.args[0]
         const body = node.args[1]
         let result: LogoValue = ''
-        while (!truthy(this.evalInstructionList(cond, env))) {
-          result = this.evalInstructionList(body, env)
+        while (!truthy((yield* this.evalInstructionListSteps(cond, env)))) {
+          result = (yield* this.evalInstructionListSteps(body, env))
         }
         return result
       }
@@ -279,19 +337,19 @@ export class Evaluator implements AritySource {
         const cond = node.args[1]
         let result: LogoValue = ''
         do {
-          result = this.evalInstructionList(body, env)
-        } while (name === 'DO.WHILE' ? truthy(this.eval(cond, env)) : !truthy(this.eval(cond, env)))
+          result = (yield* this.evalInstructionListSteps(body, env))
+        } while (name === 'DO.WHILE' ? truthy((yield* this.evalSteps(cond, env))) : !truthy((yield* this.evalSteps(cond, env))))
         return result
       }
       case 'FOR': {
         // FOR "var start stop [body]  (or with step: FOR "var start stop step [body])
-        const varName = this.eval(node.args[0], env)
-        const start = num(this.eval(node.args[1], env))
-        const stop = num(this.eval(node.args[2], env))
+        const varName = (yield* this.evalSteps(node.args[0], env))
+        const start = num((yield* this.evalSteps(node.args[1], env)))
+        const stop = num((yield* this.evalSteps(node.args[2], env)))
         let step = 1
         let body: ASTNode
         if (node.args.length >= 5) {
-          step = num(this.eval(node.args[3], env))
+          step = num((yield* this.evalSteps(node.args[3], env)))
           body = node.args[4]
         } else {
           body = node.args[3]
@@ -301,25 +359,25 @@ export class Evaluator implements AritySource {
         if (step > 0) {
           for (let v = start; v <= stop; v += step) {
             env.set(nameStr, v)
-            result = this.evalInstructionList(body, env)
+            result = (yield* this.evalInstructionListSteps(body, env))
           }
         } else {
           for (let v = start; v >= stop; v += step) {
             env.set(nameStr, v)
-            result = this.evalInstructionList(body, env)
+            result = (yield* this.evalInstructionListSteps(body, env))
           }
         }
         return result
       }
       case 'DOTIMES': {
-        const varName = this.eval(node.args[0], env)
-        const count = num(this.eval(node.args[1], env))
+        const varName = (yield* this.evalSteps(node.args[0], env))
+        const count = num((yield* this.evalSteps(node.args[1], env)))
         const body = node.args[2]
         const nameStr = String(varName).toUpperCase()
         let result: LogoValue = ''
         for (let i = 1; i <= count; i++) {
           env.set(nameStr, i)
-          result = this.evalInstructionList(body, env)
+          result = (yield* this.evalInstructionListSteps(body, env))
         }
         return result
       }
@@ -328,15 +386,15 @@ export class Evaluator implements AritySource {
         let result: LogoValue = ''
         while (true) {
           if (++this.steps > this.maxSteps) throw new LogoError('Execution limit exceeded', 'USER')
-          result = this.evalInstructionList(body, env)
+          result = (yield* this.evalInstructionListSteps(body, env))
         }
         return result
       }
       case 'CATCH': {
-        const tag = String(this.eval(node.args[0], env)).toUpperCase()
+        const tag = String((yield* this.evalSteps(node.args[0], env))).toUpperCase()
         const body = node.args[1]
         try {
-          return this.evalInstructionList(body, env)
+          return (yield* this.evalInstructionListSteps(body, env))
         } catch (e) {
           if (e instanceof ThrowSignal && e.tag === tag) {
             return e.value
@@ -345,42 +403,42 @@ export class Evaluator implements AritySource {
         }
       }
       case 'THROW': {
-        const tag = String(this.eval(node.args[0], env)).toUpperCase()
-        const value = node.args.length > 1 ? this.eval(node.args[1], env) : ''
+        const tag = String((yield* this.evalSteps(node.args[0], env))).toUpperCase()
+        const value = node.args.length > 1 ? (yield* this.evalSteps(node.args[1], env)) : ''
         throw new ThrowSignal(tag, value)
       }
       case 'STOP':
         throw new StopSignal()
       case 'OUTPUT':
       case 'OP':
-        throw new OutputSignal(this.eval(node.args[0], env))
+        throw new OutputSignal((yield* this.evalSteps(node.args[0], env)))
       case 'RUN': {
-        return this.runCode(node.args[0], env)
+        return (yield* this.runCodeSteps(node.args[0], env))
       }
       case 'CASE': {
-        const value = this.eval(node.args[0], env)
+        const value = (yield* this.evalSteps(node.args[0], env))
         const clauses = node.args[1]
-        return this.evalCase(value, clauses, env)
+        return (yield* this.evalCaseSteps(value, clauses, env))
       }
       case 'TEST': {
-        const cond = this.eval(node.args[0], env)
+        const cond = (yield* this.evalSteps(node.args[0], env))
         env.set('__TEST_RESULT__', cond)
         return ''
       }
       case 'IFTRUE': {
         const result = env.get('__TEST_RESULT__')
-        if (truthy(result)) return this.evalInstructionList(node.args[0], env)
+        if (truthy(result)) return (yield* this.evalInstructionListSteps(node.args[0], env))
         return ''
       }
       case 'IFFALSE': {
         const result = env.get('__TEST_RESULT__')
-        if (!truthy(result)) return this.evalInstructionList(node.args[0], env)
+        if (!truthy(result)) return (yield* this.evalInstructionListSteps(node.args[0], env))
         return ''
       }
       case 'GO':
       case 'RETURN': {
         // GO / RETURN: non-local jump. Simplified: evaluate the target.
-        return this.eval(node.args[0], env)
+        return (yield* this.evalSteps(node.args[0], env))
       }
       case 'BREAK':
       case 'CONTINUE':
@@ -400,24 +458,24 @@ export class Evaluator implements AritySource {
   }
 
   /** Evaluate an instruction list (a list node whose items are instructions). */
-  private evalInstructionList(node: ASTNode, env: Environment): LogoValue {
+  private *evalInstructionListSteps(node: ASTNode, env: Environment): Generator<Pause, LogoValue, void> {
     if (node.type === 'list') {
-      return this.evalSequence(node.items, env)
+      return (yield* this.evalSequenceSteps(node.items, env))
     }
-    return this.eval(node, env)
+    return (yield* this.evalSteps(node, env))
   }
 
   /** Evaluate a RUN argument (list of instructions or code string). */
-  private runCode(code: ASTNode, env: Environment): LogoValue {
+  private *runCodeSteps(code: ASTNode, env: Environment): Generator<Pause, LogoValue, void> {
     if (code.type === 'list') {
-      return this.evalSequence(code.items, env)
+      return (yield* this.evalSequenceSteps(code.items, env))
     }
     // A word containing code: evaluate it as a literal value.
-    return this.eval(code, env)
+    return (yield* this.evalSteps(code, env))
   }
 
   /** Evaluate a CASE expression. */
-  private evalCase(value: LogoValue, clauses: ASTNode, env: Environment): LogoValue {
+  private *evalCaseSteps(value: LogoValue, clauses: ASTNode, env: Environment): Generator<Pause, LogoValue, void> {
     if (clauses.type !== 'list') {
       throw new LogoError('CASE needs a list of clauses', 'BAD_INPUT')
     }
@@ -428,19 +486,20 @@ export class Evaluator implements AritySource {
         const cond = parts[0]
         // ELSE clause
         if (cond.type === 'literal' && cond.value === 'ELSE') {
-          return this.evalSequence(parts.slice(1), env)
+          return (yield* this.evalSequenceSteps(parts.slice(1), env))
         }
         // (cond) [result] or [cond1 cond2 ...] [result]
         if (cond.type === 'list') {
           const conds = cond.items
-          const matched = conds.some((c) => logoEqual(this.eval(c, env), value))
+          let matched = false
+          for (const c of conds) { if (logoEqual((yield* this.evalSteps(c, env)), value)) { matched = true; break } }
           if (matched) {
-            return this.evalSequence(parts.slice(1), env)
+            return (yield* this.evalSequenceSteps(parts.slice(1), env))
           }
         } else {
-          const matched = logoEqual(this.eval(cond, env), value)
+          const matched = logoEqual((yield* this.evalSteps(cond, env)), value)
           if (matched) {
-            return this.evalSequence(parts.slice(1), env)
+            return (yield* this.evalSequenceSteps(parts.slice(1), env))
           }
         }
       }
@@ -451,16 +510,16 @@ export class Evaluator implements AritySource {
   /** Public: run a parsed program, catching control-flow signals. */
 
   /** Evaluate a LogoList of instructions in a template context (MAP, FILTER, etc.). */
-  evalTemplate(items: LogoValue[], env: Environment): LogoValue {
+  *evalTemplateSteps(items: LogoValue[], env: Environment): Generator<Pause, LogoValue, void> {
     const text = items.map(String).join(' ')
     if (!text.trim()) return ''
     const ast = parse(tokenize(text), this)
-    return this.evalSequence(ast, env)
+    return (yield* this.evalSequenceSteps(ast, env))
   }
-  runProgram(nodes: ASTNode[], env: Environment): LogoValue {
+  *runProgramSteps(nodes: ASTNode[], env: Environment): Generator<Pause, LogoValue, void> {
     this.steps = 0
     try {
-      return this.evalSequence(nodes, env)
+      return (yield* this.evalSequenceSteps(nodes, env))
     } catch (e) {
       if (e instanceof StopSignal) return ''
       if (e instanceof OutputSignal) return e.value

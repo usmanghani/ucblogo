@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { forwardRef, useEffect, useImperativeHandle } from 'react'
 import App from '../src/App'
@@ -28,25 +28,25 @@ vi.mock('../src/components/TurtleCanvas', () => ({
 }))
 afterEach(() => { cleanup(); state.error = false; state.blockCode = 'PRINT 222' })
 
-it('runs the selected workspace through the toolbar and local blocks button', () => {
+it('runs the selected workspace through the toolbar and local blocks button', async () => {
   render(<App />)
   fireEvent.click(screen.getByTitle('Run (Ctrl+Enter)'))
-  expect(screen.getByRole('log').textContent).toBe('111')
+  await waitFor(() => expect(screen.getByRole('log').textContent).toBe('111'))
   fireEvent.click(screen.getByText('Blocks editor'))
   fireEvent.click(screen.getByTitle('Run (Ctrl+Enter)'))
-  expect(screen.getByRole('log').textContent).toBe('222')
+  await waitFor(() => expect(screen.getByRole('log').textContent).toBe('222'))
   state.blockCode = 'PRINT 333'
   fireEvent.click(screen.getByText('Run blocks'))
-  expect(screen.getByRole('log').textContent).toBe('333')
+  await waitFor(() => expect(screen.getByRole('log').textContent).toBe('333'))
   fireEvent.click(screen.getByText('Text editor'))
   fireEvent.click(screen.getByTitle('Run (Ctrl+Enter)'))
-  expect(screen.getByRole('log').textContent).toBe('111')
+  await waitFor(() => expect(screen.getByRole('log').textContent).toBe('111'))
 })
 
-it('reports invalid blocks without falling back to the text program', () => {
+it('reports invalid blocks without falling back to the text program', async () => {
   render(<App />)
   fireEvent.click(screen.getByText('Blocks editor'))
   state.error = true
   fireEvent.click(screen.getByTitle('Run (Ctrl+Enter)'))
-  expect(screen.getByRole('log').textContent).toBe('Connect a value to count')
+  await waitFor(() => expect(screen.getByRole('log').textContent).toBe('Connect a value to count'))
 })

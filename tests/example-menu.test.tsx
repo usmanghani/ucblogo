@@ -9,7 +9,7 @@ afterEach(cleanup)
 it('offers every drawing and allows loading the same choice again', () => {
   const onSelect = vi.fn()
   render(<ExamplesMenu onSelect={onSelect} />)
-  expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual(['Load a program…', 'Cat with whiskers', 'Farm', 'Rocket ship', 'Soccer ball'])
+  expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual(['Load a program…', 'Cat with whiskers', 'Farm', 'Rocket ship', 'Rocket launch (animated)', 'Soccer ball'])
   const select = screen.getByRole('combobox', { name: 'Preloaded examples' })
   fireEvent.change(select, { target: { value: 'cat' } })
   expect(onSelect).toHaveBeenLastCalledWith(examples[0])
@@ -17,14 +17,19 @@ it('offers every drawing and allows loading the same choice again', () => {
   fireEvent.change(select, { target: { value: 'cat' } })
   expect(onSelect).toHaveBeenCalledTimes(2)
 })
-it('bundles executable sources for every menu entry', () => {
+it('bundles executable sources for every menu entry', async () => {
+  vi.useFakeTimers()
+  try {
   for (const example of examples) {
     const errors: string[] = []
     const turtle = new Turtle(document.createElement('canvas'))
-    new Interpreter({ turtle, onError: e => errors.push(e.message) }).run(example.source)
+    const execution = new Interpreter({ turtle, onError: e => errors.push(e.message) }).runAsync(example.source, new AbortController().signal)
+    await vi.runAllTimersAsync()
+    await execution
     expect(errors, example.title).toEqual([])
     expect(turtle.getState()).toMatchObject({ visible: false, x: 0, y: 0 })
   }
+  } finally { vi.useRealTimers() }
 })
 it('draws six long whiskers and can redraw the complete cat', () => {
   const turtle = new Turtle(document.createElement('canvas'))
