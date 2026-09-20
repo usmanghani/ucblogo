@@ -21,6 +21,7 @@ export function PipPanel({ workspace, onClose, hidden }: { workspace: Workspace;
   const history = useRef<Message[]>(initial.messages)
   const [entries, setEntries] = useState<Entry[]>(initial.entries)
   const [prompt, setPrompt] = useState('')
+  const [consent, setConsent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('Ready when you are')
   const [model, setModel] = useState('OpenRouter · Free')
@@ -36,7 +37,7 @@ export function PipPanel({ workspace, onClose, hidden }: { workspace: Workspace;
   }, [entries, busy])
 
   async function send(text = prompt) {
-    if (!text.trim() || controller.current) return
+    if (!consent || !text.trim() || controller.current) return
     const aborter = new AbortController()
     controller.current = aborter
     setBusy(true); setPrompt(''); setCanUndo(false); checkpoint.current = null
@@ -91,14 +92,15 @@ export function PipPanel({ workspace, onClose, hidden }: { workspace: Workspace;
     </header>
     <div className="pip-context"><span className="pip-dot"/> Text editor connected <span className="pip-free">FREE</span></div>
     <div className="pip-messages" aria-label="Conversation">
-      {!entries.length && <div className="pip-welcome"><span className="pip-eyebrow">A LITTLE HELP. BIG IDEAS.</span><h2>What shall we draw?</h2><p>Describe an idea. I’ll write the Logo, run it, and help you make it your own.</p>{['Draw a colorful rocket ship', 'Draw a soccer ball', 'Explain my program'].map(s => <button key={s} onClick={() => void send(s)}>{s}<span>↗</span></button>)}</div>}
+      {!entries.length && <div className="pip-welcome"><span className="pip-eyebrow">A LITTLE HELP. BIG IDEAS.</span><h2>What shall we draw?</h2><p>Describe an idea. I’ll write the Logo, run it, and help you make it your own.</p>{['Draw a colorful rocket ship', 'Draw a soccer ball', 'Explain my program'].map(s => <button key={s} disabled={!consent} onClick={() => void send(s)}>{s}<span>↗</span></button>)}</div>}
       {entries.map((entry, i) => entry.kind === 'tool'
         ? <details className="pip-tool" key={i}><summary><span>{entry.result ? (entry.failed ? '!' : '✓') : '·'}</span> {entry.text}<small>{entry.result ? (entry.failed ? 'Needs attention' : 'Finished') : busy ? 'Working' : 'Interrupted'}</small></summary><pre>{entry.result || 'Waiting for result…'}</pre></details>
         : <div key={i} className={`pip-message pip-${entry.kind}`}><small>{entry.kind === 'user' ? 'YOU' : entry.kind === 'error' ? 'NOTICE' : 'PIP'}</small><div>{entry.text}</div></div>)}
       <div ref={bottom}/>
     </div>
     <footer className="pip-footer"><div className="pip-status" role="status"><span className={busy ? 'pip-pulse' : ''}/>{status}{canUndo && !busy && <button onClick={undo}>Undo edits</button>}</div>
-      <form onSubmit={e => { e.preventDefault(); void send() }}><label className="sr-only" htmlFor="pip-prompt">Ask Pip</label><textarea id="pip-prompt" value={prompt} maxLength={4000} placeholder="Ask Pip to draw, change, or explain…" disabled={busy} onChange={e => setPrompt(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send() } }}/><div className="pip-compose-actions"><small>Agent · {model}</small>{busy ? <button type="button" onClick={() => controller.current?.abort()}>Stop turn</button> : <button type="submit" disabled={!prompt.trim()}>Send ↗</button>}</div></form>
+      <label className="pip-consent"><input type="checkbox" checked={consent} disabled={busy} onChange={e => setConsent(e.target.checked)} />Allow Pip to send my prompts and program to OpenRouter and its model providers.</label>
+      <form onSubmit={e => { e.preventDefault(); void send() }}><label className="sr-only" htmlFor="pip-prompt">Ask Pip</label><textarea id="pip-prompt" value={prompt} maxLength={4000} placeholder="Ask Pip to draw, change, or explain…" disabled={busy} onChange={e => setPrompt(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send() } }}/><div className="pip-compose-actions"><small>Agent · {model}</small>{busy ? <button type="button" onClick={() => controller.current?.abort()}>Stop turn</button> : <button type="submit" disabled={!consent || !prompt.trim()}>Send ↗</button>}</div></form>
       <p className="pip-disclosure">Pip can edit and run the text program. Prompts and code are sent to OpenRouter. Edits can be undone.</p>
     </footer>
   </aside>

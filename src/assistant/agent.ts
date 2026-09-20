@@ -68,7 +68,7 @@ export async function runAgent(messages: Message[], workspace: Workspace, signal
   for (let step = 0; step < 8; step++) {
     signal.throwIfAborted()
     emit({ type: 'status', text: step ? 'Pip is checking the results…' : 'Pip is thinking…' })
-    const response = await fetcher('/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: history, program: workspace.read() }), signal })
+    const response = await fetcher('/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: history, program: workspace.read(), consent: true }), signal })
     const assistant = await readCompletion(response, emit)
     signal.throwIfAborted()
     history.push(assistant)

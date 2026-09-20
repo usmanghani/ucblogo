@@ -18,7 +18,7 @@ This is a public inference endpoint with bounded request size, tokens, time, and
 - Edits made during inference are checked before replacement or execution. Changes made during execution prevent stale drawings from being applied.
 - Undo edits restores the pre-turn source only if it has not subsequently changed. It does not restore drawing pixels. Monaco also retains its normal edit history. Checkpoints are kept for the current page session and are not restored on refresh.
 - Completed chats are saved to this tab’s sessionStorage. New chat clears the conversation; Clear saved session in the editor clears the program independently. Reload never automatically resumes an agent or executes a program.
-- Prompts, current source, and tool results are sent to OpenRouter and its selected free provider. No key is sent to the browser.
+- Each page load requires an explicit checkbox opt-in before any model request. The server also rejects requests without consent. Prompts, current source, and tool results are sent to OpenRouter and its selected free provider. No key is sent to the browser.
 - Interrupted streams never execute partially assembled tool calls. Completed edits remain available after stop/error. Follow-ups include the interruption and reread the current editor.
 
 ## Tests

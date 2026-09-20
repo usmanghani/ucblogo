@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { expect, it, vi } from 'vitest'
 import { handleAssistant } from '../server/assistant'
-const request = (body: unknown = { messages: [{ role: 'user', content: 'Draw a rocket' }], program: 'CS' }, origin = 'https://logo.example') => new Request('https://logo.example/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json', origin }, body: JSON.stringify(body) })
+const request = (body: unknown = { messages: [{ role: 'user', content: 'Draw a rocket' }], program: 'CS', consent: true }, origin = 'https://logo.example') => new Request('https://logo.example/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json', origin }, body: JSON.stringify(body) })
 it('pins the free router and tools on the server, adds context, and streams', async () => {
   const fetcher = vi.fn(async () => new Response('data: [DONE]\n\n', { headers: { 'Content-Type': 'text/event-stream' } }))
   const r = await handleAssistant(request(), 'private-test-key', fetcher)
@@ -28,4 +28,11 @@ it('does not leak upstream error bodies or secrets', async () => {
 it('reports quota exhaustion without paid fallback', async () => {
   const fetcher = vi.fn(async () => new Response('', { status: 429 }))
   expect((await handleAssistant(request(), 'key', fetcher)).status).toBe(429); expect(fetcher).toHaveBeenCalledOnce()
+})
+
+it('requires explicit consent before sending source to a provider', async () => {
+  const fetcher = vi.fn()
+  const r = await handleAssistant(request({ messages: [{ role: 'user', content: 'hi' }], program: 'PRINT 42', consent: false }), 'key', fetcher)
+  expect(r.status).toBe(403)
+  expect(fetcher).not.toHaveBeenCalled()
 })

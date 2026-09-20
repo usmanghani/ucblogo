@@ -1,4 +1,4 @@
-import { tools, MAX_PROGRAM, type Message } from '../src/assistant/protocol.ts'
+import { tools, MAX_PROGRAM, type Message } from '../src/assistant/protocol.js'
 
 const system = `You are Pip, a friendly, concise Logo programming assistant inside UCBLogo Web.
 You can write complete programs from natural-language prompts, inspect the text editor, run programs, and repair errors using tools.
@@ -51,9 +51,10 @@ export async function handleAssistant(request: Request, key = process.env.OPENRO
     }
     raw += decoder.decode()
   } catch { return error('Could not read request.', 400) }
-  let data: { messages?: unknown; program?: unknown }
+  let data: { messages?: unknown; program?: unknown; consent?: unknown }
   try { data = JSON.parse(raw) } catch { return error('Invalid JSON.', 400) }
   if (!data || !validMessages(data.messages) || typeof data.program !== 'string' || data.program.length > MAX_PROGRAM) return error('Invalid conversation or program. Start a new chat if it is too long.', 400)
+  if (data.consent !== true) return error('Allow sending prompts and program text to OpenRouter before using Pip.', 403)
   if (!key) return error('Pip is not connected yet. Set OPENROUTER_API_KEY in the server environment.', 503)
   try {
     const upstream = await fetcher('https://openrouter.ai/api/v1/chat/completions', {
