@@ -1,5 +1,5 @@
 # Dependencies
-node_modules/
+node_modules
 
 # Build output
 dist/
@@ -34,3 +34,7 @@ coverage/
 # CI reports
 playwright-report/
 test-results/
+
+# Server secrets
+.env*
+!.env.example

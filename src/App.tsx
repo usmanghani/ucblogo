@@ -12,11 +12,14 @@ import { Toolbar } from './components/Toolbar'
 import { HelpPanel } from './components/HelpPanel'
 import { StatusBar } from './components/StatusBar'
 import './styles/global.css'
+import { PipPanel } from './assistant/PipPanel'
+import { runLogo } from './assistant/runner'
 
 export default function App() {
   const [output, setOutput] = useState('')
   const [turtleState, setTurtleState] = useState<TurtleState | null>(null)
   const [showHelp, setShowHelp] = useState(false)
+  const [showPip, setShowPip] = useState(() => window.innerWidth > 1000)
   const [showBlocks, setShowBlocks] = useState(false)
 
   const interpreterRef = useRef<Interpreter | null>(null)
@@ -120,7 +123,8 @@ export default function App() {
   return (
     <div className="app">
       <Toolbar onRun={runCode} onStop={stop} onClear={clearScreen} onSave={onSave} onLoad={onLoad} onHelp={onHelp} />
-      <button onClick={() => setShowBlocks(value => !value)}>{showBlocks ? 'Text editor' : 'Blocks editor'}</button>
+      <div className="workspace-tabs"><button onClick={() => setShowBlocks(value => !value)}>{showBlocks ? 'Text editor' : 'Blocks editor'}</button><button aria-expanded={showPip} onClick={() => setShowPip(value => !value)}>Pip assistant</button></div>
+      <div className="app-body"><div className="workspace-body">
 
       <div className="main">
         <div className="editor-panel">
@@ -141,6 +145,23 @@ export default function App() {
         </div>
       </div>
 
+      </div>
+      <PipPanel hidden={!showPip} onClose={() => setShowPip(false)} workspace={{
+        read: () => editorRef.current?.getValue() ?? '',
+        write: code => { setShowBlocks(false); editorRef.current?.setValue(code) },
+        run: async signal => {
+          const code = editorRef.current?.getValue() ?? ''
+          const result = await runLogo(code, canvasRef.current?.width ?? 2000, canvasRef.current?.height ?? 1500, signal)
+          if (signal.aborted || editorRef.current?.getValue() !== code) {
+            result.image?.close()
+            return { errors: ['Program changed or run stopped. Drawing was not applied.'] }
+          }
+          if (result.image && result.state) { turtleRef.current?.applySnapshot(result.image, result.state); result.image.close() }
+          setOutput([result.output, ...result.errors].filter(Boolean).join('\n'))
+          return { output: result.output, errors: result.errors, state: result.state, success: !result.errors.length }
+        },
+      }}/>
+      </div>
       <StatusBar state={turtleState} />
 
       {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}

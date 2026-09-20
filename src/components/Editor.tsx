@@ -14,6 +14,8 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
   const onRunRef = useRef(onRun)
   onRunRef.current = onRun
   const session = useProgramSession('TO rainbow_spiral :size :angle\n  IF :size > 300 [STOP]\n  SETPENCOLOR (SETBGCOLOR)\n  FORWARD :size\n  RIGHT :angle\n  rainbow_spiral (:size + 2) :angle\nEND\n\nCS\nrainbow_spiral 1 89\n')
+  const programRef = useRef(session.program)
+  programRef.current = session.program
   const editorRef = useRef<unknown>(null)
   const monacoRef = useRef<any>(null)
   const modelRef = useRef<any>(null)
@@ -21,10 +23,11 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
   useImperativeHandle(ref, () => ({
     getValue: () => {
       const ed = editorRef.current as { getValue: () => string } | null
-      return ed?.getValue() ?? session.program
+      return ed?.getValue() ?? programRef.current
     },
     setValue: (v: string) => {
       const ed = editorRef.current as { setValue: (v: string) => void } | null
+      programRef.current = v
       session.saveProgram(v)
       ed?.setValue(v)
     },
