@@ -169,9 +169,7 @@
     "file": "fractals.lgo",
     "procedures": 23,
     "bodyFailures": [],
-    "startupErrors": [
-      "I don't know how to ONE"
-    ],
+    "startupErrors": [],
     "behavior": "not-verified"
   },
   {
@@ -217,9 +215,7 @@
   {
     "file": "guess_number.lgo",
     "procedures": 21,
-    "bodyFailures": [
-      "SORRY1: TO needs a procedure name"
-    ],
+    "bodyFailures": [],
     "startupErrors": [
       "I don't know how to CT"
     ],
@@ -264,7 +260,7 @@
       "MANDELBROT: FOR needs more inputs"
     ],
     "startupErrors": [
-      "I don't know how to CREATES"
+      "FOR needs more inputs"
     ],
     "behavior": "not-verified"
   },
@@ -272,8 +268,7 @@
     "file": "moas.lgo",
     "procedures": 4,
     "bodyFailures": [
-      "MANY.TURTLES: Unexpected operator +",
-      "ABOUT: TO needs a procedure name"
+      "MANY.TURTLES: Unexpected operator +"
     ],
     "startupErrors": [
       "LOOPS has no value"
@@ -398,10 +393,10 @@
   },
   {
     "file": "swing_game.lgo",
-    "procedures": 8,
+    "procedures": 7,
     "bodyFailures": [],
     "startupErrors": [
-      "I don't know how to OF"
+      "I don't know how to CT"
     ],
     "behavior": "not-verified"
   },
@@ -409,10 +404,12 @@
     "file": "target.lgo",
     "procedures": 13,
     "bodyFailures": [
+      "READY: Unexpected operator *",
+      "REPLAY: Unexpected operator *",
       "DO.COMPASS: Unexpected operator -"
     ],
     "startupErrors": [
-      "I don't know how to CT"
+      "Unexpected operator *"
     ],
     "behavior": "not-verified"
   },

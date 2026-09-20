@@ -198,7 +198,7 @@ class Parser {
     const startTok = this.next() // consume TO
     const nameTok = this.next()
     if (nameTok.type !== 'WORD') {
-      throw new LogoError('TO needs a procedure name', 'SYNTAX', startTok.line)
+      throw new LogoError('TO needs a procedure name', 'SYNTAX', undefined, startTok)
     }
     const name = nameTok.value.toUpperCase()
 
@@ -257,7 +257,7 @@ class Parser {
         this.next()
         const right = this.parseExpression(prec + 1)
         if (!right) {
-          throw new LogoError(`${tok.value} needs a right operand`, 'SYNTAX', tok.line)
+          throw new LogoError(`${tok.value} needs a right operand`, 'SYNTAX', undefined, tok)
         }
         left = { type: 'infix', op: tok.value, left, right }
         continue
@@ -269,7 +269,7 @@ class Parser {
         this.next()
         const right = this.parseExpression(prec + 1)
         if (!right) {
-          throw new LogoError(`${tok.value} needs a right operand`, 'SYNTAX', tok.line)
+          throw new LogoError(`${tok.value} needs a right operand`, 'SYNTAX', undefined, tok)
         }
         left = { type: 'infix', op: tok.value, left, right }
         continue
@@ -295,7 +295,7 @@ class Parser {
 
       case 'VARREF':
         this.next()
-        return { type: 'varref', name: tok.value }
+        return { type: 'varref', name: tok.value, line: tok.line, col: tok.col }
 
       case 'LBRACKET':
         return this.parseList(false)
@@ -304,7 +304,7 @@ class Parser {
         this.next()
         const items: ASTNode[] = []
         while (this.peek().type !== 'RBRACE') {
-          if (this.atEnd()) throw new LogoError('Unclosed {', 'SYNTAX', tok.line)
+          if (this.atEnd()) throw new LogoError('Unclosed {', 'SYNTAX', undefined, tok)
           const item = this.parseExpression(0)
           if (item) items.push(item)
         }
@@ -337,14 +337,14 @@ class Parser {
         if (inner && inner.type === 'call') {
           const args = [...inner.args]
           while (this.peek().type !== 'RPAREN') {
-            if (this.atEnd()) throw new LogoError('Unclosed (', 'SYNTAX', tok.line)
+            if (this.atEnd()) throw new LogoError('Unclosed (', 'SYNTAX', undefined, tok)
             const arg = this.parseExpression(0)
             if (arg) args.push(arg)
           }
           this.next() // consume )
           return { ...inner, args }
         }
-        throw new LogoError('Malformed ( ) expression', 'SYNTAX', tok.line)
+        throw new LogoError('Malformed ( ) expression', 'SYNTAX', undefined, tok)
       }
 
       case 'WORD': {
@@ -359,17 +359,17 @@ class Parser {
         if (tok.value === '-') {
           this.next()
           const operand = this.parsePrimary()
-          if (!operand) throw new LogoError('- needs an operand', 'SYNTAX', tok.line)
+          if (!operand) throw new LogoError('- needs an operand', 'SYNTAX', undefined, tok)
           return { type: 'call', name: 'MINUS', args: [operand], line: tok.line, col: tok.col }
         }
-        throw new LogoError(`Unexpected operator ${tok.value}`, 'SYNTAX', tok.line)
+        throw new LogoError(`Unexpected operator ${tok.value}`, 'SYNTAX', undefined, tok)
       }
 
       case 'EOF':
         return null
 
       default:
-        throw new LogoError(`Unexpected token ${tok.value}`, 'SYNTAX', tok.line)
+        throw new LogoError(`Unexpected token ${tok.value}`, 'SYNTAX', undefined, tok)
     }
   }
 
@@ -383,7 +383,7 @@ class Parser {
     const start = this.next() // consume [
     const items: ASTNode[] = []
     while (this.peek().type !== 'RBRACKET') {
-      if (this.atEnd()) throw new LogoError('Unclosed [', 'SYNTAX', start.line)
+      if (this.atEnd()) throw new LogoError('Unclosed [', 'SYNTAX', undefined, start)
       const item = instructionList ? this.parseExpression(0) : this.parseDataItem()
       if (item) items.push(item)
     }
@@ -415,12 +415,12 @@ class Parser {
         // Parentheses are meaningful expressions even inside data lists.
         return this.parsePrimary()
       case 'OP':
-        throw new LogoError(`Unexpected operator ${tok.value}`, 'SYNTAX', tok.line)
+        throw new LogoError(`Unexpected operator ${tok.value}`, 'SYNTAX', undefined, tok)
       case 'RBRACKET':
       case 'EOF':
         return null
       default:
-        throw new LogoError(`Unexpected token ${tok.value}`, 'SYNTAX', tok.line)
+        throw new LogoError(`Unexpected token ${tok.value}`, 'SYNTAX', undefined, tok)
     }
   }
 
@@ -428,11 +428,8 @@ class Parser {
   private parseCall(name: string, line: number, col: number): ASTNode {
     const arity = this.lookupArity(name)
 
-    // If the name is not a known procedure and not a primitive, treat it as a
-    // literal word (Logo's behavior for unknown words used as values).
+    // Unknown executable words remain calls so evaluation reports NO_HOW.
     if (arity === undefined) {
-      // Check if next token starts a call (e.g. it's followed by an argument
-      // pattern). Logo defaults unknown words to literal words with arity 0.
       return { type: 'call', name, args: [], line, col }
     }
 
@@ -443,7 +440,7 @@ class Parser {
         ? this.parseList(true)
         : this.parseExpression(0)
       if (!arg) {
-        throw new LogoError(`${name} needs more inputs`, 'NEED_MORE_INPUTS', line)
+        throw new LogoError(`${name} needs more inputs`, 'NEED_MORE_INPUTS', undefined, { line, col })
       }
       args.push(arg)
     }

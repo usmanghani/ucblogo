@@ -12,6 +12,8 @@
  *   - `TO` ... `END`  procedure definition
  */
 
+import { LogoError } from './errors'
+
 export type TokenType =
   | 'WORD' // bare word (procedure name or literal)
   | 'NUMBER' // numeric literal
@@ -159,6 +161,17 @@ export function tokenize(source: string): Token[] {
       const startCol = col
       advance() // consume "
       let word = ''
+      if (peek() === '|') {
+        advance()
+        while (i < n && peek() !== '|') {
+          if (peek() === '\\') advance()
+          if (i < n) word += advance()
+        }
+        if (i === n) throw new LogoError('Unclosed quoted word', 'SYNTAX', undefined, { line: startLine, col: startCol })
+        advance()
+        tokens.push({ type: 'STRING', value: word, line: startLine, col: startCol })
+        continue
+      }
       while (i < n && !isSpace(peek()) && !isDelimiter(peek()) && peek() !== '\n') {
         word += advance()
       }
