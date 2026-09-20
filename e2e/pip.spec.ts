@@ -4,7 +4,7 @@ const tool = (name: string, args = {}) => frame({ tool_calls: [{ index: 0, id: `
 
 test('Pip writes from a prompt, draws in a worker, follows up, restores chat and undoes edits', async ({ page }) => {
   let count = 0
-  const program = 'CS SETPC 4 REPEAT 4 [FD 80 RT 90] HT PRINT [SQUARE READY]'
+  const program = 'CS SETPC 4 SETPENSIZE 3 REPEAT 4 [FD 80 RT 90] HT PRINT [SQUARE READY]'
   await page.route('**/api/assistant', async route => {
     const req = route.request().postDataJSON()
     const replies = [tool('read_program'), tool('write_program', { code: program }), tool('run_program'), frame({ content: 'Your red square is ready.' }), frame({ content: 'Each side is 80 turtle steps.' })]
@@ -47,6 +47,7 @@ test('Pip stops an in-flight response and can start again', async ({ page }) => 
   await page.goto('/')
   await page.getByLabel('Ask Pip', { exact: true }).fill('Make a drawing')
   await page.getByLabel('Ask Pip', { exact: true }).press('Enter')
+  await expect.poll(() => count).toBe(1)
   await page.getByRole('button', { name: 'Stop turn' }).click()
   await expect(page.getByText('Turn stopped. Any completed edits are kept.')).toBeVisible()
   await page.getByLabel('Ask Pip', { exact: true }).fill('Hello again')
@@ -79,4 +80,15 @@ test('Pip reports configuration errors and remains usable on mobile', async ({ p
   const panel = await page.getByRole('complementary', { name: 'Pip assistant' }).boundingBox()
   expect(panel!.x).toBeGreaterThanOrEqual(0)
   expect(panel!.width).toBeLessThanOrEqual(390)
+})
+
+// Exercise the real server route without consuming a model request or requiring a key.
+test('Pip server route rejects invalid requests as JSON', async ({ page }) => {
+  await page.goto('/')
+  const result = await page.evaluate(async () => {
+    const response = await fetch('/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+    return { status: response.status, body: await response.json() }
+  })
+  expect(result.status).toBe(400)
+  expect(result.body.error).toContain('Invalid conversation')
 })
