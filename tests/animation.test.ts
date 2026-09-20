@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
+import { Turtle } from '../src/turtle/Turtle'
 import { Interpreter } from '../src/interpreter/interpreter'
 
 afterEach(() => vi.useRealTimers())
@@ -44,4 +45,18 @@ it.each(['WAIT -1', 'WAIT 3601', 'WAIT "oops'])('rejects invalid timing: %s', as
   const errors: string[] = []
   await new Interpreter({ onError: e => errors.push(e.message) }).runAsync(source, new AbortController().signal)
   expect(errors).toHaveLength(1)
+})
+
+it('batches drawing updates but publishes each WAIT frame before pausing', async () => {
+  vi.useFakeTimers()
+  const state = vi.fn()
+  const turtle = new Turtle(document.createElement('canvas'), { onStateChange: state })
+  state.mockClear()
+  const execution = new Interpreter({ turtle }).runAsync('FD 10 FD 20 FD 30 WAIT 60 FD 40', new AbortController().signal)
+  expect(state).toHaveBeenCalledTimes(1)
+  expect(state.mock.calls[0][0].y).toBe(60)
+  await vi.runAllTimersAsync()
+  await execution
+  expect(state).toHaveBeenCalledTimes(2)
+  expect(state.mock.calls[1][0].y).toBe(100)
 })

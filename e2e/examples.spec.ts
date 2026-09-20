@@ -40,19 +40,6 @@ test('cancel preserves the program; accepting from Blocks opens the text example
 })
 
 test('animated rocket changes frames, Stop freezes it, and the original remains available', async ({ page }) => {
-  page.on('console', message => { if (message.text().startsWith('animation-debug')) console.log(message.text()) })
-  page.on('pageerror', error => console.log('animation-debug page error', error.message))
-  await page.addInitScript(() => {
-    const originalAbort = AbortController.prototype.abort
-    AbortController.prototype.abort = function(reason) { console.log('animation-debug abort', new Error().stack); return originalAbort.call(this, reason) }
-    const originalTimeout = window.setTimeout.bind(window)
-    let calls = 0
-    window.setTimeout = ((fn: TimerHandler, delay?: number, ...args: unknown[]) => {
-      const watched = calls++ < 200 && (delay === 1000 || delay === 0 || delay === 1000 / 15)
-      if (watched) console.log('animation-debug timer scheduled', delay)
-      return originalTimeout(() => { if (watched) console.log('animation-debug timer fired', delay); if (typeof fn === 'function') fn(...args) }, delay)
-    }) as typeof window.setTimeout
-  })
   await page.goto('/')
   await expect(page.locator('.monaco-editor')).toBeVisible()
   page.on('dialog', dialog => dialog.accept())

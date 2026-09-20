@@ -64,12 +64,13 @@ export class Evaluator implements AritySource {
   runProgram(nodes: ASTNode[], env: Environment): LogoValue {
     return this.completeSync(this.runProgramSteps(nodes, env))
   }
-  async runProgramAsync(nodes: ASTNode[], env: Environment, signal: AbortSignal): Promise<LogoValue> {
+  async runProgramAsync(nodes: ASTNode[], env: Environment, signal: AbortSignal, onPause?: () => void): Promise<LogoValue> {
     const iterator = this.runProgramSteps(nodes, env)
     try {
       signal.throwIfAborted()
       let next = iterator.next()
       while (!next.done) {
+        onPause?.()
         const milliseconds = 'milliseconds' in next.value ? next.value.milliseconds : 0
         await new Promise<void>((resolve, reject) => {
           const abort = () => { clearTimeout(timer); reject(signal.reason) }
