@@ -11,6 +11,8 @@ export interface EditorHandle {
 }
 
 export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function Editor({ onRun }, ref) {
+  const onRunRef = useRef(onRun)
+  onRunRef.current = onRun
   const session = useProgramSession('TO rainbow_spiral :size :angle\n  IF :size > 300 [STOP]\n  SETPENCOLOR (SETBGCOLOR)\n  FORWARD :size\n  RIGHT :angle\n  rainbow_spiral (:size + 2) :angle\nEND\n\nCS\nrainbow_spiral 1 89\n')
   const editorRef = useRef<unknown>(null)
   const monacoRef = useRef<any>(null)
@@ -144,7 +146,7 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
       id: 'run-logo',
       label: 'Run Logo Program',
       keybindings: [m.KeyMod.CtrlCmd | m.KeyCode.Enter],
-      run: () => onRun(),
+      run: () => onRunRef.current(),
     })
     ed.addAction({
       id: 'toggle-line-comment',

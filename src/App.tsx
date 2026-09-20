@@ -4,6 +4,7 @@ import type { LogoError } from './interpreter/errors'
 import { Turtle, type TurtleState } from './turtle/Turtle'
 import { VirtualFS } from './filesystem/VirtualFS'
 import { Editor } from './components/Editor'
+import { Blocks, type BlocksHandle } from './components/Blocks'
 import type { EditorHandle } from './components/Editor'
 import { TurtleCanvas } from './components/TurtleCanvas'
 import { REPL } from './components/REPL'
@@ -16,12 +17,15 @@ export default function App() {
   const [output, setOutput] = useState('')
   const [turtleState, setTurtleState] = useState<TurtleState | null>(null)
   const [showHelp, setShowHelp] = useState(false)
+  const [showBlocks, setShowBlocks] = useState(false)
 
   const interpreterRef = useRef<Interpreter | null>(null)
   const turtleRef = useRef<Turtle | null>(null)
   const fsRef = useRef<VirtualFS | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const editorRef = useRef<EditorHandle | null>(null)
+  const blocksRef = useRef<BlocksHandle | null>(null)
+  const executingEditor = useRef(false)
 
   // Initialize the filesystem once on mount (hydrate from IndexedDB).
   useEffect(() => {
@@ -50,7 +54,7 @@ export default function App() {
         const message = error.message || String(error)
         setOutput((prev) => prev + `${message}\n`)
         const location = (error as LogoError).location
-        editorRef.current?.showError(message, location)
+        if (executingEditor.current) editorRef.current?.showError(message, location)
       },
     })
     interpreterRef.current = interp
@@ -58,12 +62,19 @@ export default function App() {
   }, [])
 
   const runCode = useCallback(() => {
-    const code = editorRef.current?.getValue() ?? ''
     setOutput('')
     editorRef.current?.clearErrors()
-    const interp = interpreterRef.current
-    if (interp) interp.run(code)
-  }, [])
+    try {
+      if (showBlocks && !blocksRef.current) throw new Error('Blocks workspace is not ready')
+      const code = showBlocks ? blocksRef.current!.getCode() : editorRef.current?.getValue() ?? ''
+      executingEditor.current = !showBlocks
+      interpreterRef.current?.run(code)
+    } catch (error) {
+      setOutput(`${error instanceof Error ? error.message : String(error)}\n`)
+    } finally {
+      executingEditor.current = false
+    }
+  }, [showBlocks])
 
   const stop = useCallback(() => {
     setOutput((prev) => prev + '\n[Stopped]\n')
@@ -109,10 +120,12 @@ export default function App() {
   return (
     <div className="app">
       <Toolbar onRun={runCode} onStop={stop} onClear={clearScreen} onSave={onSave} onLoad={onLoad} onHelp={onHelp} />
+      <button onClick={() => setShowBlocks(value => !value)}>{showBlocks ? 'Text editor' : 'Blocks editor'}</button>
 
       <div className="main">
         <div className="editor-panel">
-          <Editor ref={editorRef} onRun={runCode} />
+          <div style={{ height: '100%', display: showBlocks ? 'none' : 'block' }}><Editor ref={editorRef} onRun={runCode} /></div>
+          {showBlocks && <Blocks ref={blocksRef} onRun={runCode} />}
         </div>
         <div className="canvas-panel">
           <TurtleCanvas onReady={onCanvasReady} />
