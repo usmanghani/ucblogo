@@ -61,6 +61,21 @@ export class Interpreter {
     }
   }
 
+  /** Cooperative execution lets WAIT and long programs yield to browser rendering. */
+  async runAsync(source: string, signal: AbortSignal): Promise<string> {
+    this.turtle?.beginDrawingBatch()
+    try {
+      const ast = parse(tokenize(source), this.evaluator)
+      return toLogoString(await this.evaluator.runProgramAsync(ast, this.env, signal, () => this.turtle?.flushDrawing()))
+    } catch (e) {
+      if (signal.aborted) return ''
+      const error = e instanceof Error ? e : new Error(String(e))
+      this.onError?.(error)
+      if (!this.onError) this.onOutput?.(`${error.message}\n`)
+      return ''
+    } finally { this.turtle?.endDrawingBatch() }
+  }
+
   /** Evaluate a single line (for the REPL). */
   evalLine(source: string): string {
     return this.run(source)

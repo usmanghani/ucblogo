@@ -120,12 +120,13 @@ export function registerTurtle(ev: Evaluator, ctx: EvalContext): void {
   reg('TURTLETEXT', 1, 1, (args) => { turtle(ctx).label(toLogoString(args[0])); return '' })
   reg('SETW', 1, 1, (args) => { turtle(ctx).setPenSize(num(args[0], 'SETW')); return '' })
   reg('SETWIDTH', 1, 1, (args) => { turtle(ctx).setPenSize(num(args[0], 'SETWIDTH')); return '' })
+  reg('WAIT', 1, 1, () => { throw new LogoError('WAIT requires animated execution; use Run in the editor', 'USER') })
   // Recognizing syntax is not an implementation. Until these capabilities
   // exist, fail explicitly so the editor can reveal the unsupported call.
   const unsupported: Array<[string, number, number]> = [
     ['SETFONT', 1, 1], ['STAMPRECT', 2, 3], ['STAMPOVAL', 2, 3],
     ['SETVELOCITY', 1, 1], ['PLAY', 1, 1], ['MASTERPIECE', 1, 1],
-    ['WAIT', 1, 1], ['PX', 0, 0], ['FS', 0, 0], ['SETTS', 1, 1],
+    ['PX', 0, 0], ['FS', 0, 0], ['SETTS', 1, 1],
     ['ASK', 2, 2], ['TELL', 1, 1],
   ]
   for (const [name, minArgs, maxArgs] of unsupported) {

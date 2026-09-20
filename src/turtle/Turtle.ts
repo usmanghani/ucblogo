@@ -68,6 +68,7 @@ export class Turtle {
   private bctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
   private state: TurtleState
   private callbacks: TurtleCallbacks
+  private batchDrawing = false
   private width: number
   private height: number
   constructor(canvas: DrawingCanvas, callbacks: TurtleCallbacks = {}) {
@@ -94,6 +95,19 @@ export class Turtle {
     }
     this.clearScreen()
     this.render()
+  }
+
+  /** Defer canvas compositing and UI updates until an execution slice ends. */
+  beginDrawingBatch(): void { this.batchDrawing = true }
+  flushDrawing(): void {
+    const deferred = this.batchDrawing
+    this.batchDrawing = false
+    this.notify()
+    this.batchDrawing = deferred
+  }
+  endDrawingBatch(): void {
+    this.batchDrawing = false
+    this.notify()
   }
 
   /** Adopt a completed isolated run without rerunning generated code on the UI thread. */
@@ -159,6 +173,7 @@ export class Turtle {
 
   /** Composite the stroke buffer onto the display canvas, then the marker. */
   private render(): void {
+    if (this.batchDrawing) return
     this.ctx.drawImage(this.buf, 0, 0)
     if (!this.state.visible) return
     const [sx, sy] = this.toScreen(this.state.x, this.state.y)
@@ -356,9 +371,11 @@ export class Turtle {
     this.bctx.font = `${this.state.penSize * 12}px monospace`
     this.bctx.fillText(text, sx, sy)
     this.bctx.restore()
+    this.notify()
   }
 
   private notify(): void {
+    if (this.batchDrawing) return
     this.render()
     this.callbacks.onStateChange?.(this.getState())
   }

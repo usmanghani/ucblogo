@@ -357,7 +357,7 @@
     "procedures": 2,
     "bodyFailures": [],
     "startupErrors": [
-      "WAIT is not implemented yet"
+      "WAIT requires animated execution; use Run in the editor"
     ],
     "behavior": "not-verified"
   },

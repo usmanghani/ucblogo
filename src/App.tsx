@@ -30,6 +30,9 @@ export default function App() {
   const editorRef = useRef<EditorHandle | null>(null)
   const blocksRef = useRef<BlocksHandle | null>(null)
   const executingEditor = useRef(false)
+  const runController = useRef<AbortController | null>(null)
+  const activeRun = useRef<Promise<unknown>>(Promise.resolve())
+  useEffect(() => () => runController.current?.abort(), [])
 
   // Initialize the filesystem once on mount (hydrate from IndexedDB).
   useEffect(() => {
@@ -65,26 +68,35 @@ export default function App() {
     setTurtleState(t.getState())
   }, [])
 
-  const runCode = useCallback(() => {
+  const runCode = useCallback(async () => {
+    runController.current?.abort()
+    const controller = new AbortController()
+    runController.current = controller
+    await activeRun.current
+    if (controller.signal.aborted) return
     setOutput('')
     editorRef.current?.clearErrors()
     try {
       if (showBlocks && !blocksRef.current) throw new Error('Blocks workspace is not ready')
       const code = showBlocks ? blocksRef.current!.getCode() : editorRef.current?.getValue() ?? ''
       executingEditor.current = !showBlocks
-      interpreterRef.current?.run(code)
+      const execution = interpreterRef.current?.runAsync(code, controller.signal) ?? Promise.resolve('')
+      activeRun.current = execution
+      await execution
     } catch (error) {
       setOutput(`${error instanceof Error ? error.message : String(error)}\n`)
     } finally {
-      executingEditor.current = false
+      if (runController.current === controller) { executingEditor.current = false; runController.current = null }
     }
   }, [showBlocks])
 
   const stop = useCallback(() => {
+    runController.current?.abort()
     setOutput((prev) => prev + '\n[Stopped]\n')
   }, [])
 
   const clearScreen = useCallback(() => {
+    runController.current?.abort()
     turtleRef.current?.clearScreen()
     setOutput('')
   }, [])
@@ -116,6 +128,7 @@ export default function App() {
   const loadExample = useCallback((example: Example) => {
     const current = editorRef.current?.getValue() ?? ''
     if (current.trim() && current !== example.source && !window.confirm(`Replace the current text program with ${example.title}? Save a copy first if you want to keep it.`)) return
+    runController.current?.abort()
     editorRef.current?.setValue(example.source)
     editorRef.current?.clearErrors()
     setShowBlocks(false)
@@ -123,6 +136,10 @@ export default function App() {
   }, [])
 
   const replSubmit = useCallback((line: string) => {
+    if (runController.current && !runController.current.signal.aborted) {
+      setOutput(prev => prev + 'Stop the running program before using the command line.\n')
+      return
+    }
     const interp = interpreterRef.current
     if (interp) {
       const result = interp.evalLine(line)
@@ -158,8 +175,10 @@ export default function App() {
       </div>
       <PipPanel hidden={!showPip} onClose={() => setShowPip(false)} workspace={{
         read: () => editorRef.current?.getValue() ?? '',
-        write: code => { setShowBlocks(false); editorRef.current?.setValue(code) },
+        write: code => { runController.current?.abort(); setShowBlocks(false); editorRef.current?.setValue(code) },
         run: async signal => {
+          runController.current?.abort()
+          await activeRun.current
           const code = editorRef.current?.getValue() ?? ''
           const result = await runLogo(code, canvasRef.current?.width ?? 2000, canvasRef.current?.height ?? 1500, signal)
           if (signal.aborted || editorRef.current?.getValue() !== code) {
