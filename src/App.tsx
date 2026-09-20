@@ -12,6 +12,7 @@ import { Toolbar } from './components/Toolbar'
 import { HelpPanel } from './components/HelpPanel'
 import { StatusBar } from './components/StatusBar'
 import './styles/global.css'
+import type { Example } from './examples/catalog'
 import { PipPanel } from './assistant/PipPanel'
 import { runLogo } from './assistant/runner'
 
@@ -112,6 +113,15 @@ export default function App() {
     }
   }, [])
 
+  const loadExample = useCallback((example: Example) => {
+    const current = editorRef.current?.getValue() ?? ''
+    if (current.trim() && current !== example.source && !window.confirm(`Replace the current text program with ${example.title}? Save a copy first if you want to keep it.`)) return
+    editorRef.current?.setValue(example.source)
+    editorRef.current?.clearErrors()
+    setShowBlocks(false)
+    setOutput(`Loaded ${example.title}. Press Run to draw it.\n`)
+  }, [])
+
   const replSubmit = useCallback((line: string) => {
     const interp = interpreterRef.current
     if (interp) {
@@ -122,7 +132,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Toolbar onRun={runCode} onStop={stop} onClear={clearScreen} onSave={onSave} onLoad={onLoad} onHelp={onHelp} />
+      <Toolbar onRun={runCode} onStop={stop} onClear={clearScreen} onSave={onSave} onLoad={onLoad} onHelp={onHelp} onExample={loadExample} />
       <div className="workspace-tabs"><button onClick={() => setShowBlocks(value => !value)}>{showBlocks ? 'Text editor' : 'Blocks editor'}</button><button aria-expanded={showPip} onClick={() => setShowPip(value => !value)}>Pip assistant</button></div>
       <div className="app-body"><div className="workspace-body">
 
