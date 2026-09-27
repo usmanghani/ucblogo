@@ -69,7 +69,7 @@ describe('Pip agent', () => {
     expect((await readCompletion(new Response(stream, { headers: { 'Content-Type': 'text/event-stream' } }), vi.fn())).content).toBe('café')
   })
   it('surfaces provider errors and limits without executing tools', async () => {
-    await expect(readCompletion(new Response('{"error":"Free models are busy"}', { status: 429 }), vi.fn())).rejects.toThrow('busy')
+    await expect(readCompletion(new Response('{"error":"DeepSeek is busy or the OpenRouter quota is exhausted."}', { status: 429 }), vi.fn())).rejects.toThrow('busy')
     await expect(readCompletion(new Response('data: {"choices":[{"finish_reason":"length"}]}\n\n', { headers: { 'Content-Type': 'text/event-stream' } }), vi.fn())).rejects.toThrow('response limit')
   })
 })

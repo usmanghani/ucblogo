@@ -1,6 +1,11 @@
 import { test, expect } from './fixtures'
 const frame = (delta: object) => `data: ${JSON.stringify({ model: 'test/free', choices: [{ delta }] })}\n\ndata: [DONE]\n\n`
 const tool = (name: string, args = {}) => frame({ tool_calls: [{ index: 0, id: `call_${name}`, type: 'function', function: { name, arguments: JSON.stringify(args) } }] })
+async function allowPip(page: import('@playwright/test').Page) {
+  const checkbox = page.getByRole('checkbox', { name: /Allow Pip/ })
+  await expect(checkbox).toBeVisible()
+  if (!await checkbox.isChecked()) await checkbox.check()
+}
 
 test('Pip writes from a prompt, draws in a worker, follows up, restores chat and undoes edits', async ({ page }) => {
   let count = 0
@@ -12,7 +17,7 @@ test('Pip writes from a prompt, draws in a worker, follows up, restores chat and
     await route.fulfill({ contentType: 'text/event-stream', body: replies[count++] })
   })
   await page.goto('/')
-  if (await page.getByRole('checkbox', { name: /Allow Pip/ }).isVisible()) await page.getByRole('checkbox', { name: /Allow Pip/ }).check()
+  await allowPip(page)
   await expect(page.locator('.monaco-editor')).toBeVisible()
   const original = await page.evaluate(() => sessionStorage.getItem('ucblogo.program.session.v1'))
   await page.getByLabel('Ask Pip', { exact: true }).fill('Draw a red square')
@@ -46,7 +51,7 @@ test('Pip stops an in-flight response and can start again', async ({ page }) => 
     await route.fulfill({ contentType: 'text/event-stream', body: frame({ content: 'Ready to help again.' }) })
   })
   await page.goto('/')
-  if (await page.getByRole('checkbox', { name: /Allow Pip/ }).isVisible()) await page.getByRole('checkbox', { name: /Allow Pip/ }).check()
+  await allowPip(page)
   await page.getByLabel('Ask Pip', { exact: true }).fill('Make a drawing')
   await page.getByLabel('Ask Pip', { exact: true }).press('Enter')
   await expect.poll(() => count).toBe(1)
@@ -62,7 +67,7 @@ test('Pip times out infinite Logo without freezing the editor', async ({ page })
   let count = 0
   await page.route('**/api/assistant', route => route.fulfill({ contentType: 'text/event-stream', body: [tool('write_program', { code: 'FOREVER [FD 1 RT 1]' }), tool('run_program'), frame({ content: 'This loop needs a finite repeat count.' })][count++] }))
   await page.goto('/')
-  if (await page.getByRole('checkbox', { name: /Allow Pip/ }).isVisible()) await page.getByRole('checkbox', { name: /Allow Pip/ }).check()
+  await allowPip(page)
   await expect(page.locator('.monaco-editor')).toBeVisible()
   await page.getByLabel('Ask Pip', { exact: true }).fill('Test a loop')
   await page.getByLabel('Ask Pip', { exact: true }).press('Enter')
@@ -76,9 +81,8 @@ test('Pip reports configuration errors and remains usable on mobile', async ({ p
   await page.setViewportSize({ width: 390, height: 844 })
   await page.route('**/api/assistant', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Pip is not connected yet.' }) }))
   await page.goto('/')
-  if (await page.getByRole('checkbox', { name: /Allow Pip/ }).isVisible()) await page.getByRole('checkbox', { name: /Allow Pip/ }).check()
   await page.getByRole('button', { name: 'Pip assistant' }).click()
-  await page.getByRole('checkbox', { name: /Allow Pip/ }).check()
+  await allowPip(page)
   await page.getByRole('button', { name: 'Draw a soccer ball' }).click()
   await expect(page.getByText('Pip is not connected yet.')).toBeVisible()
   await expect(page.getByLabel('Ask Pip', { exact: true })).toBeEnabled()
@@ -90,7 +94,6 @@ test('Pip reports configuration errors and remains usable on mobile', async ({ p
 // Exercise the real server route without consuming a model request or requiring a key.
 test('Pip server route rejects invalid requests as JSON', async ({ page }) => {
   await page.goto('/')
-  if (await page.getByRole('checkbox', { name: /Allow Pip/ }).isVisible()) await page.getByRole('checkbox', { name: /Allow Pip/ }).check()
   const result = await page.evaluate(async () => {
     const response = await fetch('/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
     return { status: response.status, body: await response.json() }

@@ -1,5 +1,7 @@
 import { pathToFileURL } from 'node:url'
 
+const expectedModel = 'deepseek/deepseek-v4.1-flash'
+
 // Validate an actual complete SSE response. A 200 HTML fallback, truncated stream,
 // provider error event, or missing server credentials must fail the release check.
 export async function verifyAssistantStream(response) {
@@ -7,7 +9,7 @@ export async function verifyAssistantStream(response) {
   if (!response.headers.get('content-type')?.includes('text/event-stream') || !response.body) throw new Error('Assistant did not return an SSE stream')
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
-  let buffer = '', received = false, finished = false, bytes = 0
+  let buffer = '', received = false, finished = false, modelSeen = false, bytes = 0
   function event(frame) {
     const data = frame.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n')
     if (!data) return
@@ -15,6 +17,10 @@ export async function verifyAssistantStream(response) {
     let chunk
     try { chunk = JSON.parse(data) } catch { throw new Error('Malformed assistant SSE data') }
     if (chunk.error || chunk.choices?.some(choice => choice.finish_reason === 'error')) throw new Error('Provider reported an error inside the assistant stream')
+    if (typeof chunk.model === 'string') {
+      if (chunk.model !== expectedModel && !chunk.model.startsWith(`${expectedModel}-`)) throw new Error(`Assistant stream used an unexpected model: ${chunk.model}`)
+      modelSeen = true
+    }
     if (chunk.choices?.some(choice => choice.delta?.content?.trim() || choice.delta?.tool_calls?.some(call => call.function?.name))) received = true
   }
   try {
@@ -35,6 +41,7 @@ export async function verifyAssistantStream(response) {
     }
   } finally { await reader.cancel().catch(() => {}) }
   if (!finished || !received) throw new Error('Assistant stream ended without model output and a completion marker')
+  if (!modelSeen) throw new Error('Assistant stream did not identify DeepSeek V4.1 Flash')
 }
 
 export async function smokeAssistant({ baseURL, secret = '', fetcher = fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), log = console.log }) {
@@ -55,7 +62,7 @@ export async function smokeAssistant({ baseURL, secret = '', fetcher = fetch, sl
       continue
     }
     await verifyAssistantStream(response)
-    log('Live assistant smoke passed: deployed route, credentials, quota checks, and complete model stream')
+    log('Live assistant smoke passed: deployed route, credentials, quota checks, DeepSeek V4.1 Flash, and complete model stream')
     return
   }
 }

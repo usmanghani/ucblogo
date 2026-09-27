@@ -1,6 +1,14 @@
 import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 
+if (typeof ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserverMock implements ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+}
+
 // jsdom has no canvas backend: every getContext('2d') returns null.
 // Give every canvas a recording mock context (Turtle's offscreen buffer included).
 function createMockCtx() {

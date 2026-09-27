@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { lazy, Suspense, useRef, useState, useCallback, useEffect } from 'react'
 import { Interpreter } from './interpreter/interpreter'
 import type { LogoError } from './interpreter/errors'
 import { Turtle, type TurtleState } from './turtle/Turtle'
@@ -13,14 +13,16 @@ import { HelpPanel } from './components/HelpPanel'
 import { StatusBar } from './components/StatusBar'
 import './styles/global.css'
 import type { Example } from './examples/catalog'
-import { PipPanel } from './assistant/PipPanel'
 import { runLogo } from './assistant/runner'
+
+const PipPanel = lazy(() => import('./assistant/PipPanel').then(module => ({ default: module.PipPanel })))
 
 export default function App() {
   const [output, setOutput] = useState('')
   const [turtleState, setTurtleState] = useState<TurtleState | null>(null)
   const [showHelp, setShowHelp] = useState(false)
   const [showPip, setShowPip] = useState(() => window.innerWidth > 1000)
+  const [pipMounted, setPipMounted] = useState(() => window.innerWidth > 1000)
   const [showBlocks, setShowBlocks] = useState(false)
 
   const interpreterRef = useRef<Interpreter | null>(null)
@@ -150,7 +152,7 @@ export default function App() {
   return (
     <div className="app">
       <Toolbar onRun={runCode} onStop={stop} onClear={clearScreen} onSave={onSave} onLoad={onLoad} onHelp={onHelp} onExample={loadExample} />
-      <div className="workspace-tabs"><button onClick={() => setShowBlocks(value => !value)}>{showBlocks ? 'Text editor' : 'Blocks editor'}</button><button aria-expanded={showPip} onClick={() => setShowPip(value => !value)}>Pip assistant</button></div>
+      <div className="workspace-tabs"><button onClick={() => setShowBlocks(value => !value)}>{showBlocks ? 'Text editor' : 'Blocks editor'}</button><button aria-expanded={showPip} onClick={() => { if (!showPip) setPipMounted(true); setShowPip(value => !value) }}>Pip assistant</button></div>
       <div className="app-body"><div className="workspace-body">
 
       <div className="main">
@@ -173,7 +175,7 @@ export default function App() {
       </div>
 
       </div>
-      <PipPanel hidden={!showPip} onClose={() => setShowPip(false)} workspace={{
+      {pipMounted && <Suspense fallback={null}><PipPanel hidden={!showPip} onClose={() => setShowPip(false)} workspace={{
         read: () => editorRef.current?.getValue() ?? '',
         write: code => { runController.current?.abort(); setShowBlocks(false); editorRef.current?.setValue(code) },
         run: async signal => {
@@ -189,7 +191,7 @@ export default function App() {
           setOutput([result.output, ...result.errors].filter(Boolean).join('\n'))
           return { output: result.output, errors: result.errors, state: result.state, success: !result.errors.length }
         },
-      }}/>
+      }}/></Suspense>}
       </div>
       <StatusBar state={turtleState} />
 
