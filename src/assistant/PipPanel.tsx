@@ -103,13 +103,13 @@ function PipRuntime({
         </div>
         <label className="pip-consent">
           <input type="checkbox" checked={consent} disabled={busy} onChange={event => onConsentChange(event.target.checked)} />
-          Allow Pip to send my prompts and program to OpenRouter. DeepSeek usage can incur charges.
+          Allow Pip to send my prompts and program code to OpenRouter.
         </label>
         <ComposerPrimitive.Root className="pip-composer" onSubmitCapture={event => {
           if (!consent) {
             event.preventDefault()
             event.stopPropagation()
-            onStatus('Allow Pip to send prompts and program text to OpenRouter before sending.')
+            onStatus('Allow Pip to send prompts and program code to OpenRouter before sending.')
           }
         }}>
           <ComposerPrimitive.Input
@@ -130,7 +130,7 @@ function PipRuntime({
             </AuiIf>
           </div>
         </ComposerPrimitive.Root>
-        <p className="pip-disclosure">Pip can edit and run the text program. Prompts and code are sent to OpenRouter. Edits can be undone.</p>
+        <p className="pip-disclosure">AI usage may incur charges to the configured OpenRouter account. New code runs automatically; edits can be undone.</p>
       </footer>
     </ThreadPrimitive.Root>
   </AssistantRuntimeProvider>

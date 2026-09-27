@@ -84,7 +84,7 @@ export function createPipChatModelAdapter(getContext: () => PipRuntimeContext): 
   return {
     async *run({ messages, abortSignal }) {
       const context = getContext()
-      if (!context.consent) throw new Error('Allow Pip to send prompts and program text to OpenRouter before sending.')
+      if (!context.consent) throw new Error('Allow Pip to send prompts and program code to OpenRouter before sending.')
 
       const transcript = toPipMessages(messages)
       if (!transcript.length || transcript.at(-1)?.role !== 'user') {

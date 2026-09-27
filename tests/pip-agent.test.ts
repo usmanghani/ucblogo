@@ -13,15 +13,38 @@ function workspace() {
 }
 
 describe('Pip agent', () => {
-  it('writes, runs, sends tool results back, then answers', async () => {
+  it('automatically runs a program after writing, sends the result back, then answers', async () => {
     const w = workspace()
-    const responses = [sse(call('read_program')), sse(call('write_program', JSON.stringify({ code: 'CS REPEAT 4 [FD 80 RT 90] HT' }))), sse(call('run_program')), sse({ content: 'Your square is ready.' })]
+    const responses = [sse(call('write_program', JSON.stringify({ code: 'CS REPEAT 4 [FD 80 RT 90] HT' }))), sse({ content: 'Your square is ready.' })]
     const fetcher = vi.fn(async () => responses.shift()!)
     const history = await runAgent(initial, w, new AbortController().signal, vi.fn(), fetcher)
     expect(w.write).toHaveBeenCalledWith('CS REPEAT 4 [FD 80 RT 90] HT')
     expect(w.run).toHaveBeenCalledOnce()
-    expect(history.filter(m => m.role === 'tool')).toHaveLength(3)
+    const result = history.find(m => m.role === 'tool')
+    expect(JSON.parse(result!.content!).execution).toEqual({ success: true, errors: [] })
+    expect(history.filter(m => m.role === 'tool')).toHaveLength(1)
     expect(history.at(-1)?.content).toBe('Your square is ready.')
+  })
+  it('reuses the automatic execution if the model also requests run_program', async () => {
+    const w = workspace()
+    const responses = [sse(call('write_program', '{"code":"PRINT 2"}')), sse(call('run_program')), sse({ content: 'Done.' })]
+    const history = await runAgent(initial, w, new AbortController().signal, vi.fn(), vi.fn(async () => responses.shift()!))
+    expect(w.run).toHaveBeenCalledOnce()
+    expect(history.filter(m => m.role === 'tool')).toHaveLength(2)
+  })
+  it('returns automatic execution errors so Pip can repair and rerun the code', async () => {
+    const w = workspace()
+    w.run.mockResolvedValueOnce({ success: false, errors: ['Unknown command'] } as never)
+    const responses = [
+      sse(call('write_program', '{"code":"BOGUS"}')),
+      sse(call('write_program', '{"code":"PRINT 42"}')),
+      sse({ content: 'Fixed.' }),
+    ]
+    const history = await runAgent(initial, w, new AbortController().signal, vi.fn(), vi.fn(async () => responses.shift()!))
+    const results = history.filter(message => message.role === 'tool')
+    expect(w.run).toHaveBeenCalledTimes(2)
+    expect(JSON.parse(results[0].content!).execution.errors).toEqual(['Unknown command'])
+    expect(JSON.parse(results[1].content!).execution).toEqual({ success: true, errors: [] })
   })
   it('repairs failed execution in a subsequent tool step', async () => {
     const w = workspace(); w.run.mockResolvedValueOnce({ success: false, errors: ['Unknown command'] } as never)

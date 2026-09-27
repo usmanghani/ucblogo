@@ -12,8 +12,8 @@ test('Pip writes from a prompt, draws in a worker, follows up, restores chat and
   const program = 'CS SETPC 4 SETPENSIZE 3 REPEAT 4 [FD 80 RT 90] HT PRINT [SQUARE READY]'
   await page.route('**/api/assistant', async route => {
     const req = route.request().postDataJSON()
-    const replies = [tool('read_program'), tool('write_program', { code: program }), tool('run_program'), frame({ content: 'Your red square is ready.' }), frame({ content: 'Each side is 80 turtle steps.' })]
-    if (count === 3) expect(req.messages.at(-1).content).toContain('"success":true')
+    const replies = [tool('read_program'), tool('write_program', { code: program }), frame({ content: 'Your red square is ready.' }), frame({ content: 'Each side is 80 turtle steps.' })]
+    if (count === 2) expect(req.messages.at(-1).content).toContain('"success":true')
     await route.fulfill({ contentType: 'text/event-stream', body: replies[count++] })
   })
   await page.goto('/')
@@ -23,6 +23,7 @@ test('Pip writes from a prompt, draws in a worker, follows up, restores chat and
   await page.getByLabel('Ask Pip', { exact: true }).fill('Draw a red square')
   await page.getByRole('button', { name: 'Send ↗' }).click()
   await expect(page.getByText('Your red square is ready.')).toBeVisible()
+  expect(count).toBe(3)
   await expect(page.getByRole('log')).toContainText('SQUARE READY')
   expect(await page.evaluate(() => sessionStorage.getItem('ucblogo.program.session.v1'))).toContain(program)
   const pixels = await page.locator('.canvas-panel canvas').evaluate((el: HTMLCanvasElement) => {
@@ -65,7 +66,7 @@ test('Pip stops an in-flight response and can start again', async ({ page }) => 
 
 test('Pip times out infinite Logo without freezing the editor', async ({ page }) => {
   let count = 0
-  await page.route('**/api/assistant', route => route.fulfill({ contentType: 'text/event-stream', body: [tool('write_program', { code: 'FOREVER [FD 1 RT 1]' }), tool('run_program'), frame({ content: 'This loop needs a finite repeat count.' })][count++] }))
+  await page.route('**/api/assistant', route => route.fulfill({ contentType: 'text/event-stream', body: [tool('write_program', { code: 'FOREVER [FD 1 RT 1]' }), frame({ content: 'This loop needs a finite repeat count.' })][count++] }))
   await page.goto('/')
   await allowPip(page)
   await expect(page.locator('.monaco-editor')).toBeVisible()
@@ -102,12 +103,20 @@ test('Pip server route rejects invalid requests as JSON', async ({ page }) => {
   expect(result.body.error).toContain('Invalid conversation')
 })
 
-test('Pip requires explicit opt-in before sending editor content', async ({ page }) => {
+test('Pip discloses billing without making pricing a required acknowledgement', async ({ page }) => {
   let requests = 0
-  await page.route('**/api/assistant', route => { requests++; return route.abort() })
+  await page.route('**/api/assistant', route => { requests++; return route.fulfill({ contentType: 'text/event-stream', body: frame({ content: 'Here is an explanation.' }) }) })
   await page.goto('/')
+  const checkbox = page.getByRole('checkbox', { name: /Allow Pip/ })
+  const send = page.getByRole('button', { name: 'Send ↗' })
+  await expect(checkbox).toBeVisible()
+  await expect(page.locator('.pip-consent')).not.toContainText(/charge|price/i)
+  await expect(page.getByText(/may incur charges to the configured OpenRouter account/i)).toBeVisible()
+  await expect(send).toBeDisabled()
+  await checkbox.check()
   await page.getByLabel('Ask Pip', { exact: true }).fill('Explain this program')
-  await expect(page.getByRole('button', { name: 'Send ↗' })).toBeDisabled()
+  await expect(send).toBeEnabled()
   await page.getByLabel('Ask Pip', { exact: true }).press('Enter')
-  expect(requests).toBe(0)
+  await expect(page.getByText('Here is an explanation.')).toBeVisible()
+  expect(requests).toBe(1)
 })
