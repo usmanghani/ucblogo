@@ -6,9 +6,9 @@ Pip is a collapsible side panel for writing Logo from prompts, explaining the cu
 
 Set `OPENROUTER_API_KEY` in Vercel project Settings → Environment Variables for Preview and Production, then redeploy. The key stays in the function environment. Never use a `VITE_` prefix or commit a key. For local development, copy `.env.example` to `.env.local`, set the value, and run `npm run dev`. The Vite development and preview servers expose the same `/api/assistant` handler.
 
-The server always requests `deepseek/deepseek-v4.1-flash` through OpenRouter, including tools in each request. It does not silently fall back to another model. This is a metered model, so each completed turn can incur OpenRouter charges. Quota/rate errors are reported so the user can retry. A missing key returns a clear 503 configuration error.
+The server always requests `deepseek/deepseek-v4.1-flash` through OpenRouter, including tools in each request. It does not silently fall back to another model. Each completed turn can incur charges to the configured OpenRouter account. The Pip panel shows this cost disclosure; it does not require a pricing acknowledgement. Quota/rate errors are reported so the user can retry. A missing key returns a clear 503 configuration error.
 
-This remains a public assistant with explicit provider-sharing consent. Same-origin checks are required but are not authentication. Vercel Firewall enforces shared quotas before any model request. Use a dedicated OpenRouter key with a spending limit; do not reuse a personal key with unrelated permissions.
+This remains a public assistant with explicit provider-sharing consent and a visible billing disclosure. The pricing disclosure does not require a separate acknowledgement. Same-origin checks are required but are not authentication. Vercel Firewall enforces shared quotas before any model request. Use a dedicated OpenRouter key with a spending limit; do not reuse a personal key with unrelated permissions.
 
 ### Configure shared quotas before deploying
 
@@ -25,13 +25,13 @@ The API runs in `iad1` because Vercel's shared counters are per-region. Do not e
 
 ## Workspace behavior
 
-- The agent edits the text program, switching out of Blocks when it writes. It does not edit the block graph.
+- The agent edits the text program, switching out of Blocks when it writes. Every successful write automatically runs the new code, returns diagnostics to the agent, and allows it to repair errors before responding. It does not edit the block graph.
 - Each run uses a fresh interpreter and turtle in a dedicated Web Worker with an OffscreenCanvas. It has no virtual files or hardware access. The worker is terminated after three seconds or when Stop is clicked. Successful runs transfer drawing pixels and turtle state to the visible canvas without executing generated source on the UI thread.
 - A run reports output, errors, and turtle state. Pip does not receive an image or claim visual inspection. REPL definitions/variables are separate from the isolated run.
 - Edits made during inference are checked before replacement or execution. Changes made during execution prevent stale drawings from being applied.
 - Undo edits restores the pre-turn source only if it has not subsequently changed. It does not restore drawing pixels. Monaco also retains its normal edit history. Checkpoints are kept for the current page session and are not restored on refresh.
 - Completed chats are saved to this tab’s sessionStorage. New chat clears the conversation; Clear saved session in the editor clears the program independently. Reload never automatically resumes an agent or executes a program.
-- Each page load requires an explicit checkbox opt-in before any model request. The server also rejects requests without consent. Prompts, current source, and tool results are sent to OpenRouter for DeepSeek V4.1 Flash. No key is sent to the browser.
+- Each page load requires an explicit provider-sharing opt-in before any model request. Prompts, current source, and tool results are sent to OpenRouter for DeepSeek V4.1 Flash. Charges to the configured account are disclosed without a separate pricing acknowledgement. No key is sent to the browser.
 - Interrupted streams never execute partially assembled tool calls. Completed edits remain available after stop/error. Follow-ups include the interruption and reread the current editor.
 
 ## Tests

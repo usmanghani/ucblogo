@@ -31,11 +31,13 @@ it('reports quota exhaustion without falling back to another model', async () =>
   expect((await handleAssistant(request(), 'key', fetcher)).status).toBe(429); expect(fetcher).toHaveBeenCalledOnce()
 })
 
-it('requires explicit consent before sending source to a provider', async () => {
-  const fetcher = vi.fn()
-  const r = await handleAssistant(request({ messages: [{ role: 'user', content: 'hi' }], program: 'PRINT 42', consent: false }), 'key', fetcher)
-  expect(r.status).toBe(403)
-  expect(fetcher).not.toHaveBeenCalled()
+it('requires provider-sharing consent but no separate pricing acknowledgement', async () => {
+  const fetcher = vi.fn(async () => new Response('data: [DONE]\n\n', { headers: { 'Content-Type': 'text/event-stream' } }))
+  const body = { messages: [{ role: 'user', content: 'hi' }], program: 'PRINT 42' }
+  expect((await handleAssistant(request(body), 'key', fetcher)).status).toBe(403)
+  const r = await handleAssistant(request({ ...body, consent: true }), 'key', fetcher)
+  expect(r.status).toBe(200)
+  expect(fetcher).toHaveBeenCalledOnce()
 })
 
 it('rejects missing Origin instead of treating it as a trusted caller', async () => {

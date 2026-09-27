@@ -65,6 +65,7 @@ export async function readCompletion(response: Response, emit: (event: AgentEven
 export async function runAgent(messages: Message[], workspace: Workspace, signal: AbortSignal, emit: (event: AgentEvent) => void, fetcher: typeof fetch = fetch): Promise<Message[]> {
   const history = [...messages]
   let expectedProgram = workspace.read()
+  let lastRun: { code: string; result: unknown } | undefined
   for (let step = 0; step < 8; step++) {
     signal.throwIfAborted()
     emit({ type: 'status', text: step ? 'Pip is checking the results…' : 'Pip is thinking…' })
@@ -87,11 +88,19 @@ export async function runAgent(messages: Message[], workspace: Workspace, signal
           if (typeof args.code !== 'string' || !args.code.trim() || args.code.length > MAX_PROGRAM) throw new Error('Program must be nonempty and under 30,000 characters.')
           if (workspace.read() !== expectedProgram) throw new Error('The user edited the program during this turn. Read it again before making changes.')
           workspace.write(args.code); expectedProgram = args.code
-          result = { written: true, characters: args.code.length }
+          emit({ type: 'status', text: 'Pip is running the new program…' })
+          const execution = await workspace.run(signal)
+          lastRun = { code: args.code, result: execution }
+          result = { written: true, characters: args.code.length, execution }
         } else if (call.function.name === 'run_program') {
           if (workspace.read() !== expectedProgram) throw new Error('The user changed the program. Read it again before running.')
-          emit({ type: 'status', text: 'Pip is running the program…' })
-          result = await workspace.run(signal)
+          if (lastRun?.code === expectedProgram) {
+            result = lastRun.result
+          } else {
+            emit({ type: 'status', text: 'Pip is running the program…' })
+            result = await workspace.run(signal)
+            lastRun = { code: expectedProgram, result }
+          }
         } else throw new Error('Unknown tool. Only Logo workspace tools are available.')
       } catch (error) {
         signal.throwIfAborted()
