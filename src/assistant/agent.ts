@@ -1,4 +1,4 @@
-import { MAX_PROGRAM, type Message, type ToolCall } from './protocol'
+import { MAX_MODEL_RESPONSE_BYTES, MAX_PROGRAM, type Message, type ToolCall } from './protocol'
 
 export interface Workspace {
   read: () => string
@@ -47,7 +47,7 @@ export async function readCompletion(response: Response, emit: (event: AgentEven
       const { value, done } = await reader.read()
       if (done) break
       size += value.byteLength
-      if (size > 300000) throw new Error('Model response is too large.')
+      if (size > MAX_MODEL_RESPONSE_BYTES) throw new Error('Model stream exceeded the 2 MB safety limit. Try asking for a smaller response.')
       buffer += decoder.decode(value, { stream: true }).replace(/\r/g, '')
       let boundary: number
       while ((boundary = buffer.indexOf('\n\n')) >= 0) {

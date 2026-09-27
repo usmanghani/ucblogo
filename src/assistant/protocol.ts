@@ -10,6 +10,7 @@ export interface Message {
   tool_call_id?: string
 }
 export const MAX_PROGRAM = 30000
+export const MAX_MODEL_RESPONSE_BYTES = 2_000_000
 export const tools = [
   { type: 'function', function: { name: 'read_program', description: 'Read the current text editor program and workspace context.', parameters: { type: 'object', properties: {}, additionalProperties: false } } },
   { type: 'function', function: { name: 'write_program', description: 'Replace the text editor with a complete executable Logo program. Includes an undo checkpoint. Does not run it.', parameters: { type: 'object', properties: { code: { type: 'string', description: 'Complete Logo source, without Markdown fences.' } }, required: ['code'], additionalProperties: false } } },
