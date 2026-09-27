@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { smokeAssistant, verifyAssistantStream } from './smoke-assistant.mjs'
 const response = text => new Response(text, { headers: { 'Content-Type': 'text/event-stream' } })
-const valid = 'data: {"choices":[{"delta":{"content":"Hello"}}]}\r\n\r\ndata: [DONE]\r\n\r\n'
+const valid = 'data: {"model":"deepseek/deepseek-v4.1-flash","choices":[{"delta":{"content":"Hello"}}]}\r\n\r\ndata: [DONE]\r\n\r\n'
 test('accepts complete SSE, including fragmented UTF-8 and CRLF', async () => {
   const chunks = new TextEncoder().encode(valid.replace('Hello', 'Héllo'))
   const body = new ReadableStream({ start(controller) { for (const byte of chunks) controller.enqueue(Uint8Array.of(byte)); controller.close() } })
@@ -14,6 +14,7 @@ for (const [name, input] of [
   ['truncated output', response('data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n')],
   ['empty stream', response('data: [DONE]\n\n')],
   ['provider stream error', response('data: {"error":{"message":"private"}}\n\n')],
+  ['wrong model', response('data: {"model":"openrouter/free","choices":[{"delta":{"content":"Hello"}}]}\n\ndata: [DONE]\n\n')],
 ]) test(`fails on ${name}`, async () => { await assert.rejects(verifyAssistantStream(input)) })
 test('does not skip when the deployment URL is absent', async () => {
   await assert.rejects(smokeAssistant({}), /required/)

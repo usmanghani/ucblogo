@@ -27,7 +27,7 @@ export async function readCompletion(response: Response, emit: (event: AgentEven
     if (!payload) return
     if (payload.trim() === '[DONE]') { finished = true; return }
     const data = JSON.parse(payload)
-    if (data.error) throw new Error('The free model interrupted this turn. Please try again.')
+    if (data.error) throw new Error('DeepSeek V4.1 Flash interrupted this turn. Please try again.')
     if (data.model) emit({ type: 'model', text: data.model })
     const choice = data.choices?.[0]
     if (choice?.finish_reason === 'length') throw new Error('The model reached its response limit. Ask for a smaller program.')
@@ -57,7 +57,7 @@ export async function readCompletion(response: Response, emit: (event: AgentEven
     if (!finished) throw new Error('Connection interrupted. No incomplete tool calls were applied. Try again.')
     const tool_calls = [...calls.values()]
     if (tool_calls.some(c => !c.id || !c.function.name) || new Set(tool_calls.map(c => c.id)).size !== tool_calls.length) throw new Error('Invalid tool response.')
-    if (!content && !tool_calls.length) throw new Error('The free model returned an empty response. Try again.')
+    if (!content && !tool_calls.length) throw new Error('DeepSeek V4.1 Flash returned an empty response. Try again.')
     return { role: 'assistant', content: content || null, ...(tool_calls.length ? { tool_calls } : {}) }
   } finally { await reader.cancel().catch(() => {}); reader.releaseLock() }
 }

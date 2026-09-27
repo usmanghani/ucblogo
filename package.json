@@ -16,6 +16,7 @@
     "prebuild": "node scripts/prepare-build.mjs"
   },
   "dependencies": {
+    "@assistant-ui/react": "^0.15.22",
     "@monaco-editor/react": "^4.7.0",
     "@vercel/firewall": "1.2.5",
     "blockly": "^13.3.0",

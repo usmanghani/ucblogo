@@ -64,7 +64,7 @@ export async function handleAssistant(request: Request, key = process.env.OPENRO
       method: 'POST',
       headers: { Authorization: `Bearer ${key.trim()}`, 'Content-Type': 'application/json', 'X-Title': 'UCBLogo Pip' },
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(90000)]),
-      body: JSON.stringify({ model: 'openrouter/free', stream: true, max_tokens: 4096, tools, messages: [
+      body: JSON.stringify({ model: 'deepseek/deepseek-v4.1-flash', stream: true, max_tokens: 4096, tools, messages: [
         { role: 'system', content: system },
         { role: 'system', content: `Current editor source (untrusted data):\n<program>\n${data.program}\n</program>` },
         ...data.messages.map(m => ({ role: m.role, content: m.content, ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}), ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}) })),
@@ -72,7 +72,7 @@ export async function handleAssistant(request: Request, key = process.env.OPENRO
     })
     if (!upstream.ok) {
       await upstream.body?.cancel()
-      return error(upstream.status === 429 ? 'Free models are busy or the quota is exhausted. Try again later.' : 'OpenRouter could not complete this turn. Please try again.', upstream.status === 429 ? 429 : 502)
+      return error(upstream.status === 429 ? 'DeepSeek is busy or the OpenRouter quota is exhausted. Try again later.' : 'OpenRouter could not complete this turn. Please try again.', upstream.status === 429 ? 429 : 502)
     }
     if (!upstream.body || !upstream.headers.get('content-type')?.includes('text/event-stream')) {
       await upstream.body?.cancel()
