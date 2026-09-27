@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { readCompletion, runAgent, type Workspace } from '../src/assistant/agent'
-import type { Message } from '../src/assistant/protocol'
+import { MAX_MODEL_RESPONSE_BYTES, type Message } from '../src/assistant/protocol'
 
 function sse(delta: object, done = true) {
   return new Response(`data: ${JSON.stringify({ model: 'test/free', choices: [{ delta }] })}\n\n${done ? 'data: [DONE]\n\n' : ''}`, { headers: { 'Content-Type': 'text/event-stream' } })
@@ -67,6 +67,17 @@ describe('Pip agent', () => {
     const raw = new TextEncoder().encode('data: {"choices":[{"delta":{"content":"café"}}]}\r\n\r\ndata: [DONE]\r\n\r\n')
     const stream = new ReadableStream({ start(c) { for (const byte of raw) c.enqueue(new Uint8Array([byte])); c.close() } })
     expect((await readCompletion(new Response(stream, { headers: { 'Content-Type': 'text/event-stream' } }), vi.fn())).content).toBe('café')
+  })
+  it('accepts a fragmented response whose SSE framing exceeds the old 300 KB limit', async () => {
+    const frames = Array.from({ length: 4000 }, () => `data: ${JSON.stringify({ model: 'deepseek/deepseek-v4.1-flash', choices: [{ delta: { content: 'x' } }] })}\n\n`).join('')
+    expect(frames.length).toBeGreaterThan(300_000)
+    const response = new Response(`${frames}data: [DONE]\n\n`, { headers: { 'Content-Type': 'text/event-stream' } })
+    expect((await readCompletion(response, vi.fn())).content).toHaveLength(4000)
+  })
+  it('still rejects a stream that exceeds the 2 MB safety limit', async () => {
+    const body = new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(new Uint8Array(MAX_MODEL_RESPONSE_BYTES + 1).fill(32)) } })
+    const response = new Response(body, { headers: { 'Content-Type': 'text/event-stream' } })
+    await expect(readCompletion(response, vi.fn())).rejects.toThrow('2 MB safety limit')
   })
   it('surfaces provider errors and limits without executing tools', async () => {
     await expect(readCompletion(new Response('{"error":"DeepSeek is busy or the OpenRouter quota is exhausted."}', { status: 429 }), vi.fn())).rejects.toThrow('busy')
