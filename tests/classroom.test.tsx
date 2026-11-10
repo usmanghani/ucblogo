@@ -24,7 +24,7 @@ vi.mock('../src/teacher/useTeacher', async original => ({
   ...await original<typeof import('../src/teacher/useTeacher')>(),
   useTeacher: (handlers: TeacherHandlers) => {
     state.handlers = handlers
-    return { messages: [], working: false, resuming: false, failure: null, send: async (text: string) => { state.sent.push(text) }, stop: async () => {}, newChat() {} }
+    return { messages: [], drawings: new Map(), working: false, resuming: false, failure: null, send: async (text: string) => { state.sent.push(text) }, stop: async () => {}, newChat() {} }
   },
 }))
 
@@ -37,7 +37,7 @@ it('runs the student’s program and tells Pip what happened', async () => {
   expect(state.handlers!.getPage()).toMatchObject({ program: 'PRINT 111', lastRun: null, lesson: null, completed: [] })
   fireEvent.click(screen.getByTitle('Run (Ctrl+Enter)'))
   await waitFor(() => expect(log()).toBe('111'))
-  await waitFor(() => expect(state.handlers!.getPage().lastRun).toEqual({ by: 'student', current: true, output: '111\n', errors: [] }))
+  await waitFor(() => expect(state.handlers!.getPage().lastRun).toEqual({ by: 'student', current: true, output: '111\n', errors: [], stopped: false }))
   state.code = 'PRINT 222'
   expect(state.handlers!.getPage().lastRun).toMatchObject({ current: false })
 })

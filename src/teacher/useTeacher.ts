@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { activeTurn } from 'eve/events'
 import { useEveAgent, type EveMessage } from 'eve/react'
+import { hasConsent } from './progress'
 import type { ClientSessionState, SessionStreamEvent } from 'eve/client'
 
 export const CHAT_KEY = 'logo-teacher.chat.v1'
@@ -9,7 +10,7 @@ const MAX_SAVED_CHARS = 1_500_000
 /** What the page tells Pip about the student's workspace with every message. */
 export interface PageSnapshot {
   program: string
-  lastRun: { by: 'student' | 'pip'; current: boolean; output: string; errors: string[] } | null
+  lastRun: { by: 'student' | 'pip'; current: boolean; output: string; errors: string[]; stopped: boolean } | null
   lesson: string | null
   completed: string[]
 }
@@ -24,6 +25,8 @@ export interface TeacherHandlers {
 interface SavedChat { events?: readonly SessionStreamEvent[]; session?: ClientSessionState }
 
 function loadChat(): SavedChat {
+  // Without consent nothing may reach Pip, and resuming a saved chat is a request to Pip.
+  if (!hasConsent()) return {}
   try {
     const saved: unknown = JSON.parse(sessionStorage.getItem(CHAT_KEY) ?? '{}')
     return saved && typeof saved === 'object' ? saved as SavedChat : {}
@@ -39,12 +42,15 @@ function saveChat(chat: SavedChat) {
   } catch { /* the chat simply will not survive a reload */ }
 }
 
+const hasDrawing = (message: EveMessage) => message.role === 'user' && message.parts.some(part => part.type === 'file')
+
 const toolCalls = (messages: readonly EveMessage[]) => messages.flatMap(message => message.parts.flatMap(part => (part.type === 'tool' ? [part] : [])))
 
 /** Explain a failure in words a student can act on. */
 export function describeError(error: unknown): string {
   const raw = error instanceof Error ? error.message : typeof error === 'string' ? error : ''
   if (/helping a lot of students|not set up yet|only answers its own pages/i.test(raw)) return raw
+  if (/413|415|too large|media type/i.test(raw)) return 'Pip could not take that picture. Try a smaller photo or a PNG or JPEG.'
   if (/failed to fetch|networkerror|load failed/i.test(raw)) return 'Pip cannot be reached. Check your connection, then try again.'
   if (/401|403|unauthor|forbidden/i.test(raw)) return 'Pip is not available on this site right now.'
   if (/429|rate/i.test(raw)) return 'Pip is helping a lot of students right now. Wait a minute, then try again.'
@@ -86,12 +92,27 @@ export function useTeacher(handlers: TeacherHandlers) {
     }
   }, [agent.messages, agent.status])
 
+  // The server keeps a sent picture but does not hand back an address for it, so remember
+  // this tab's own pictures to show them in the conversation. After a reload they show as a note.
+  const [sentDrawings, setSentDrawings] = useState<readonly string[]>([])
+  const [restoredDrawings, setRestoredDrawings] = useState(() => agent.messages.filter(hasDrawing).length)
+  const drawings = useMemo(() => {
+    const shown = new Map<string, string>()
+    agent.messages.filter(hasDrawing).slice(restoredDrawings).forEach((message, index) => { if (sentDrawings[index]) shown.set(message.id, sentDrawings[index]) })
+    return shown
+  }, [agent.messages, sentDrawings, restoredDrawings])
+
   const turnOpen = activeTurn(agent.view) !== undefined
   const working = turnOpen || agent.status === 'busy'
 
-  const send = useCallback(async (text: string) => {
+  const send = useCallback(async (text: string, drawings: readonly string[] = []) => {
     setFailure(null)
-    try { await agent.send(text) } catch (error) { setFailure(describeError(error)) }
+    if (drawings.length) setSentDrawings(previous => [...previous, drawings[0]])
+    try {
+      await agent.send(drawings.length
+        ? [{ type: 'text', text }, ...drawings.map((data, index) => ({ type: 'file' as const, data, mediaType: data.slice(5, data.indexOf(';')), filename: `drawing-${index + 1}.jpg` }))]
+        : text)
+    } catch (error) { setFailure(describeError(error)) }
   }, [agent])
 
   const stop = useCallback(async () => {
@@ -101,19 +122,22 @@ export function useTeacher(handlers: TeacherHandlers) {
   const newChat = useCallback(() => {
     try { sessionStorage.removeItem(CHAT_KEY) } catch { /* nothing saved */ }
     handled.current = new Set()
+    setSentDrawings([])
+    setRestoredDrawings(0)
     setFailure(null)
     agent.newSession()
   }, [agent])
 
   return useMemo(() => ({
     messages: agent.messages,
+    drawings,
     working,
     resuming: agent.status === 'resuming',
     failure,
     send,
     stop,
     newChat,
-  }), [agent.messages, agent.status, working, failure, send, stop, newChat])
+  }), [agent.messages, agent.status, drawings, working, failure, send, stop, newChat])
 }
 
 export type Teacher = ReturnType<typeof useTeacher>

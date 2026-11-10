@@ -21,7 +21,10 @@ export function describePage(raw: unknown): string[] {
     const output = text(run.output, 2000).trim()
     const who = run.by === 'pip' ? 'you' : 'the student'
     const stale = run.current === false ? ' The program has been edited since that run.' : ''
-    context.push(`The last run was started by ${who}.${stale} ${errors.length ? `It stopped with: ${errors.join(' | ')}` : 'It finished without errors.'}${output ? `\nPrinted output:\n${output}` : ''}`)
+    const outcome = errors.length ? `It stopped with: ${errors.join(' | ')}`
+      : run.stopped === true ? 'It was stopped before it finished, so it may be incomplete.'
+        : 'It finished without errors.'
+    context.push(`The last run was started by ${who}.${stale} ${outcome}${output ? `\nPrinted output:\n${output}` : ''}`)
   } else {
     context.push('The program has not been run yet in this visit.')
   }

@@ -25,6 +25,13 @@ describe('checkProgram: how Pip finds out what a program does', () => {
     expect(check.errors[0].message).toMatch(/ran too long/)
     expect(Date.now() - started).toBeLessThan(3000)
   })
+  it('stops loops that do nothing, which never reach the step counter', () => {
+    for (const code of ['REPEAT 1000000000000 []', 'FOREVER []']) {
+      const started = Date.now()
+      expect(checkProgram(code).errors[0]?.message, code).toMatch(/ran too long/)
+      expect(Date.now() - started, code).toBeLessThan(4000)
+    }
+  })
   it('treats WAIT as instant so animations can be checked', () => {
     expect(checkProgram('REPEAT 3 [FD 10 WAIT 60] PRINT "ok')).toMatchObject({ ok: true, output: 'ok' })
   })

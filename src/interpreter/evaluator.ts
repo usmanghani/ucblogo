@@ -101,6 +101,8 @@ export class Evaluator implements AritySource {
   private primitives = new Map<string, PrimitiveDef>()
   private ctx: EvalContext
   private steps = 0
+  private loopTurns = 0
+  private readonly maxLoopTurns = 10_000_000
   private readonly maxSteps = 100000
 
   constructor(ctx: EvalContext) {
@@ -139,6 +141,15 @@ export class Evaluator implements AritySource {
     const values: LogoValue[] = []
     for (const node of nodes) values.push((yield* this.evalSteps(node, env)))
     return values
+  }
+
+  /**
+   * Called once per loop iteration. A loop whose body evaluates nothing (REPEAT n [])
+   * never reaches evalSteps, so without this it could neither be paused nor stopped.
+   */
+  private *loopTurn(): Generator<Pause, void, void> {
+    if (++this.loopTurns > this.maxLoopTurns) throw new LogoError('Execution limit exceeded', 'USER')
+    if (this.loopTurns % 2000 === 0) yield { cooperate: true }
   }
 
   /** Evaluate a single node. */
@@ -322,6 +333,7 @@ export class Evaluator implements AritySource {
         const n = num(count)
         let result: LogoValue = ''
         for (let i = 0; i < n; i++) {
+          yield* this.loopTurn()
           env.set('REPCOUNT', i + 1)
           result = (yield* this.evalInstructionListSteps(body, env))
         }
@@ -332,6 +344,7 @@ export class Evaluator implements AritySource {
         const body = node.args[1]
         let result: LogoValue = ''
         while (truthy((yield* this.evalInstructionListSteps(cond, env)))) {
+          yield* this.loopTurn()
           result = (yield* this.evalInstructionListSteps(body, env))
         }
         return result
@@ -341,6 +354,7 @@ export class Evaluator implements AritySource {
         const body = node.args[1]
         let result: LogoValue = ''
         while (!truthy((yield* this.evalInstructionListSteps(cond, env)))) {
+          yield* this.loopTurn()
           result = (yield* this.evalInstructionListSteps(body, env))
         }
         return result
@@ -351,6 +365,7 @@ export class Evaluator implements AritySource {
         const cond = node.args[1]
         let result: LogoValue = ''
         do {
+          yield* this.loopTurn()
           result = (yield* this.evalInstructionListSteps(body, env))
         } while (name === 'DO.WHILE' ? truthy((yield* this.evalSteps(cond, env))) : !truthy((yield* this.evalSteps(cond, env))))
         return result
@@ -372,11 +387,13 @@ export class Evaluator implements AritySource {
         let result: LogoValue = ''
         if (step > 0) {
           for (let v = start; v <= stop; v += step) {
+            yield* this.loopTurn()
             env.set(nameStr, v)
             result = (yield* this.evalInstructionListSteps(body, env))
           }
         } else {
           for (let v = start; v >= stop; v += step) {
+            yield* this.loopTurn()
             env.set(nameStr, v)
             result = (yield* this.evalInstructionListSteps(body, env))
           }
@@ -390,6 +407,7 @@ export class Evaluator implements AritySource {
         const nameStr = String(varName).toUpperCase()
         let result: LogoValue = ''
         for (let i = 1; i <= count; i++) {
+          yield* this.loopTurn()
           env.set(nameStr, i)
           result = (yield* this.evalInstructionListSteps(body, env))
         }
@@ -399,6 +417,7 @@ export class Evaluator implements AritySource {
         const body = node.args[0]
         let result: LogoValue = ''
         while (true) {
+          yield* this.loopTurn()
           if (++this.steps > this.maxSteps) throw new LogoError('Execution limit exceeded', 'USER')
           result = (yield* this.evalInstructionListSteps(body, env))
         }
@@ -532,6 +551,7 @@ export class Evaluator implements AritySource {
   }
   *runProgramSteps(nodes: ASTNode[], env: Environment): Generator<Pause, LogoValue, void> {
     this.steps = 0
+    this.loopTurns = 0
     try {
       return (yield* this.evalSequenceSteps(nodes, env))
     } catch (e) {

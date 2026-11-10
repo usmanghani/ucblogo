@@ -93,3 +93,17 @@
   .thinking span, .tool-working .tool-mark { animation: none; }
   .thread-viewport { scroll-behavior: auto; }
 }
+
+/* Drawings the student shows Pip */
+.composer { flex-wrap: wrap; }
+.composer-drawings { flex: 0 0 100%; display: flex; flex-wrap: wrap; gap: 6px; }
+.composer-drawings:empty { display: none; }
+.drawing-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--leaf-wash); border-radius: 10px; padding: 4px 6px 4px 4px; font-size: 13px; margin: 2px 0 4px; }
+.drawing-chip img { width: 40px; height: 40px; object-fit: cover; border-radius: 7px; background: #fff; }
+.drawing-chip button { border: none; background: none; font-size: 18px; line-height: 1; padding: 0 4px; color: var(--ink-soft); }
+.composer-attach { flex-shrink: 0; align-self: flex-end; width: 34px; height: 34px; margin-left: -6px; border: none; background: none; border-radius: 9px; display: grid; place-items: center; color: var(--ink-soft); }
+.composer-attach:hover:not(:disabled) { background: var(--leaf-wash); color: var(--leaf-deep); }
+.composer-attach svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.sent-drawing { max-width: min(220px, 70%); max-height: 220px; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+.sent-drawing-note { font-size: 13px; color: var(--ink-soft); background: var(--paper); border-radius: 10px; padding: 5px 10px; }
+.drawing-hint { font-size: 14px; }

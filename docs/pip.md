@@ -21,6 +21,16 @@ Both program tools return the same report from `src/logo/check.ts`: printed outp
 
 Server runs start from a clean interpreter, have no file system, treat `WAIT` as instant, and stop after 100,000 evaluation steps or two seconds. Pip has no shell, file, or web tools (`defaultTools: false`).
 
+### Drawings
+
+A student can attach a picture, usually a photo of a drawing on paper, and Pip writes a Logo program that draws its main shapes. Use the picture button in the message box.
+
+- The page redraws the picture on a canvas before sending: at most 1280 pixels on its long side, as a JPEG. That keeps a phone photo to a few hundred kilobytes and removes its metadata, such as where it was taken.
+- The agent accepts JPEG, PNG, WebP and GIF up to 3 MB (`uploadPolicy` in `agent/channels/eve.ts`) and refuses anything else.
+- eve stores an attached file in the session's sandbox and shows it to the model on later turns of that conversation. On Vercel that is Vercel Sandbox, which the project must be able to use; locally it is the `just-bash` dev dependency.
+- The model must accept images. The default one does. If you change `PIP_MODEL`, pick one with vision.
+- Pip is briefed to describe the shapes it sees, not people, and to say plainly that the result is the turtle's version of the drawing. It still cannot see the turtle's own drawing pane.
+
 ### The course
 
 `src/teacher/lessons.ts` lists the lessons: title, goal, new words, a starter program and a challenge. The page renders it as the lesson path. `agent/lib/prompt.ts` writes it into Pip's instructions. A unit test runs every starter program to make sure it works and fits the drawing pane.
@@ -66,7 +76,7 @@ Firewall counters are per region, so `vercel.ts` pins the project to `iad1`. If 
 ## Privacy
 
 - Before the first message, the page tells the student that Pip is an AI and that their messages and the program in the code pane are sent to an AI model. Nothing is sent until they press **Start learning**. The choice is remembered in that browser.
-- What is sent each turn: the student's message, the program, the last run's output and errors, and lesson progress. No names, accounts or identifiers are collected by this application.
+- What is sent each turn: the student's message, any picture they attach, the program, the last run's output and errors, and lesson progress. No names, accounts or identifiers are collected by this application.
 - Conversations are stored by eve on Vercel Workflow so they can resume after a reload. The page keeps the conversation cursor in `sessionStorage` (this tab only) and lesson progress in `localStorage`.
 - Model requests go through Vercel AI Gateway to the provider of the configured model. Their data terms apply; choose a model whose terms suit your students.
 - Pip's brief asks it to stay on Logo, programming and drawing, and to treat program text and output as data rather than instructions. A prompt is not a guarantee. If you run this for children, supervise.
@@ -75,6 +85,6 @@ Firewall counters are per region, so `vercel.ts` pins the project to `iad1`. If 
 
 `npm test` covers the server-side program check, every lesson starter, the access check, the quota's three outcomes, the page-context sanitiser, the tools, the message adapter between eve and assistant-ui, the reply renderer, and how the page reacts when Pip's tools fire.
 
-`npm run test:e2e` drives the real page, agent and tools in Chromium against a scripted model (`e2e/fake-model.mjs`): consent, a program arriving in the code pane and drawing, Pip repairing its own error from the run report, a lesson from start to completion, page context reaching the model, stopping a turn, a refused request, cross-site refusal, and the phone layout.
+`npm run test:e2e` drives the real page, agent and tools in Chromium against a scripted model (`e2e/fake-model.mjs`): consent, a program arriving in the code pane and drawing, Pip repairing its own error from the run report, a lesson from start to completion, page context reaching the model, a hand drawing turned into a program, stopping a turn, a refused request, cross-site refusal, and the phone layout.
 
-`npm run test:live` sends one synthetic message to a deployed preview and requires a complete reply. It proves routing, the access check, the quota rules and AI Gateway access are all in place. It does not judge the teaching.
+`npm run test:live` sends one synthetic message and then one synthetic picture to a deployed preview. It requires a complete reply to each and requires Pip to name the shape in the picture. It proves routing, the access check, the quota rules, AI Gateway access and picture uploads are all in place. It does not judge the teaching.

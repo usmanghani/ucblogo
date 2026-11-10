@@ -26,11 +26,13 @@ export function useProgress() {
   return { completed, complete }
 }
 
+export function hasConsent(): boolean {
+  try { return localStorage.getItem(CONSENT_KEY) === 'yes' } catch { return false }
+}
+
 /** The student agrees once per browser to their messages and code going to the AI model. */
 export function useConsent() {
-  const [consent, setConsent] = useState(() => {
-    try { return localStorage.getItem(CONSENT_KEY) === 'yes' } catch { return false }
-  })
+  const [consent, setConsent] = useState(hasConsent)
   const accept = useCallback(() => {
     try { localStorage.setItem(CONSENT_KEY, 'yes') } catch { /* asked again next visit */ }
     setConsent(true)

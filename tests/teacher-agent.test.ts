@@ -83,6 +83,10 @@ describe('page context', () => {
   it('notes a run that no longer matches the code, and runs Pip started', () => {
     expect(describePage({ program: 'FD 1', lastRun: { by: 'pip', current: false, output: '', errors: [] } })[1]).toBe('The last run was started by you. The program has been edited since that run. It finished without errors.')
   })
+  it('does not call a stopped run a clean finish', () => {
+    expect(describePage({ program: 'FD 1', lastRun: { by: 'student', current: true, output: '', errors: [], stopped: true } })[1]).toContain('stopped before it finished')
+    expect(describePage({ program: 'FD 1', lastRun: { by: 'student', current: true, output: '', errors: ['boom'], stopped: true } })[1]).toContain('It stopped with: boom')
+  })
   it('never trusts the browser: wrong types, unknown lessons and oversized fields are dropped or cut', () => {
     for (const junk of [undefined, null, 'text', 7, [], { program: 5, lastRun: 'x', lesson: {}, completed: 'all' }]) {
       const context = describePage(junk)
@@ -107,6 +111,10 @@ describe('Pip’s tools and brief', () => {
   it('complete_lesson names what comes next, and nothing after the last lesson', async () => {
     expect(await completeLesson.execute({ lesson_id: lessons[0].id }, {} as never)).toEqual({ completed: lessons[0].id, next: { id: lessons[1].id, title: lessons[1].title } })
     expect(await completeLesson.execute({ lesson_id: lessons.at(-1)!.id }, {} as never)).toMatchObject({ next: null })
+  })
+  it('briefs Pip on turning a drawing into a program', () => {
+    expect(teacherPrompt).toMatch(/photo of something they drew/)
+    expect(teacherPrompt).toMatch(/do not describe the people/)
   })
   it('briefs Pip on every lesson', () => {
     for (const lesson of lessons) {

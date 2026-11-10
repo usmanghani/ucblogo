@@ -10,7 +10,7 @@ The page has three panes:
 | **Code** | Your Logo program, in an editor that highlights Logo and marks the line an error came from. |
 | **Drawing** | What the turtle drew, what the program printed, and a command line for one-off commands. |
 
-Pip can put a program in your code pane and run it while you watch, check code privately before showing it, and mark a lesson complete when you have done its challenge. Every code block in Pip's replies has a **Try it** button. When a program you ran stops with an error, one click asks Pip what went wrong.
+Pip can put a program in your code pane and run it while you watch, check code privately before showing it, and mark a lesson complete when you have done its challenge. You can also show Pip a photo of something you drew on paper, and Pip will write a Logo program that draws it. Every code block in Pip's replies has a **Try it** button. When a program you ran stops with an error, one click asks Pip what went wrong.
 
 Pip is told what is in your code pane and how your last run went with every message, so you never have to paste code into the chat.
 

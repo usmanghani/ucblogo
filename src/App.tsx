@@ -17,7 +17,7 @@ import { useTeacher, type PageSnapshot } from './teacher/useTeacher'
 import './styles/global.css'
 
 type Pane = 'teacher' | 'code' | 'drawing'
-interface RunRecord { by: 'student' | 'pip'; code: string; output: string; errors: string[] }
+interface RunRecord { by: 'student' | 'pip'; code: string; output: string; errors: string[]; stopped: boolean }
 
 export default function App() {
   const [output, setOutput] = useState('')
@@ -92,7 +92,8 @@ export default function App() {
     } finally {
       if (record.current === current) record.current = null
       if (runController.current === controller) runController.current = null
-      const finished: RunRecord = { by, code, output: current.output.slice(0, 2000), errors: current.errors.slice(0, 5) }
+      // A run that was stopped did not finish cleanly, and Pip must not be told it did.
+      const finished: RunRecord = { by, code, output: current.output.slice(0, 2000), errors: current.errors.slice(0, 5), stopped: controller.signal.aborted }
       lastRunRef.current = finished
       setLastRun(finished)
     }
@@ -171,7 +172,7 @@ export default function App() {
     const run = lastRunRef.current
     return {
       program,
-      lastRun: run && { by: run.by, current: run.code === program, output: run.output, errors: run.errors },
+      lastRun: run && { by: run.by, current: run.code === program, output: run.output, errors: run.errors, stopped: run.stopped },
       lesson,
       completed,
     }

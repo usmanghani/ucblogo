@@ -1,6 +1,7 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import {
   AssistantRuntimeProvider,
+  AttachmentPrimitive,
   AuiIf,
   ComposerPrimitive,
   MessagePrimitive,
@@ -10,6 +11,7 @@ import {
   type ThreadMessageLike,
 } from '@assistant-ui/react'
 import type { EveMessage } from 'eve/react'
+import { drawingAttachments } from './drawing'
 import { lessonById, lessons, type Lesson } from './lessons'
 import { Markdown } from './Markdown'
 import type { Teacher } from './useTeacher'
@@ -21,10 +23,12 @@ type ContentPart = Exclude<ThreadMessageLike['content'], string>[number]
 const SETTLED = new Set(['completed', 'failed', 'rejected', 'cancelled'])
 
 /** Map an eve message onto assistant-ui's message shape. Pip's private reasoning is not shown. */
-export function toThreadMessage(message: EveMessage): ThreadMessageLike {
+export function toThreadMessage(message: EveMessage, drawing?: string): ThreadMessageLike {
   const content: ContentPart[] = []
   for (const part of message.parts) {
     if (part.type === 'text' && part.text) content.push({ type: 'text', text: part.text })
+    // A picture the student attached. Its address is only known while this tab still holds it.
+    if (part.type === 'file' && part.mediaType.startsWith('image/')) content.push({ type: 'image', image: part.url ?? drawing ?? '' })
     if (part.type === 'tool') {
       const settled = SETTLED.has(part.state)
       content.push({
@@ -38,6 +42,9 @@ export function toThreadMessage(message: EveMessage): ThreadMessageLike {
   }
   return { id: message.id, role: message.role, content }
 }
+
+/** What is sent when a student attaches a drawing and types nothing. */
+export const DRAWING_REQUEST = 'Here is my drawing. Can you turn it into a Logo program?'
 
 const TryIt = createContext<((code: string) => void) | undefined>(undefined)
 
@@ -102,10 +109,12 @@ export function TeacherPanel({ teacher, consent, onConsent, completed, lesson, o
     messages: teacher.messages as EveMessage[],
     isRunning: teacher.working,
     isDisabled: blocked,
-    convertMessage: toThreadMessage,
+    convertMessage: message => toThreadMessage(message, teacher.drawings.get(message.id)),
+    adapters: { attachments: drawingAttachments },
     onNew: async message => {
       const text = message.content.map(part => (part.type === 'text' ? part.text : '')).join('\n').trim()
-      if (text) await teacher.send(text)
+      const drawings = (message.attachments ?? []).flatMap(attachment => (attachment.content ?? []).flatMap(part => (part.type === 'image' ? [part.image] : [])))
+      if (text || drawings.length) await teacher.send(text || DRAWING_REQUEST, drawings.slice(0, 1))
     },
     onCancel: teacher.stop,
   })
@@ -155,6 +164,7 @@ export function TeacherPanel({ teacher, consent, onConsent, completed, lesson, o
                     {['Draw a rocket ship', 'Explain my program', 'Give me a challenge'].map(prompt =>
                       <ThreadPrimitive.Suggestion key={prompt} className="suggestion" prompt={prompt} send>{prompt}</ThreadPrimitive.Suggestion>)}
                   </div>
+                  <p className="drawing-hint">Drew something on paper? Use the picture button below and I’ll help the turtle draw it.</p>
                   <h2>The course</h2>
                   <LessonPath completed={completed} current={lesson} onPick={startLesson} disabled={blocked} />
                 </>}
@@ -167,6 +177,9 @@ export function TeacherPanel({ teacher, consent, onConsent, completed, lesson, o
                 <MessagePrimitive.Parts>
                   {({ part }) => {
                     if (part.type === 'text') return part.text ? <MessageText text={part.text} student={message.role === 'user'} /> : null
+                    if (part.type === 'image') return part.image
+                      ? <img className="sent-drawing" src={part.image} alt="The drawing you sent" />
+                      : <div className="sent-drawing-note">You sent a drawing</div>
                     if (part.type === 'tool-call') return <ToolNote key={part.toolCallId} part={part} />
                     return null
                   }}
@@ -183,11 +196,17 @@ export function TeacherPanel({ teacher, consent, onConsent, completed, lesson, o
               <span>Your program stopped: <em>{runProblem}</em></span><strong>Ask Pip</strong>
             </button>}
             <ComposerPrimitive.Root className="composer">
+              <div className="composer-drawings">
+                <ComposerPrimitive.Attachments>{({ attachment }) => <DrawingChip file={'file' in attachment ? attachment.file : undefined} />}</ComposerPrimitive.Attachments>
+              </div>
+              <ComposerPrimitive.AddAttachment className="composer-attach" aria-label="Add a picture of your drawing" title="Add a picture of your drawing">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5" /><circle cx="8.5" cy="10" r="1.6" /><path d="m4 17 5-4.5 3.5 3L16 12l4 4" /></svg>
+              </ComposerPrimitive.AddAttachment>
               <ComposerPrimitive.Input
                 aria-label="Message Pip"
                 className="composer-input"
                 maxLength={4000}
-                placeholder={consent ? 'Ask Pip, or say what you want to draw…' : 'Press “Start learning” to begin'}
+                placeholder={consent ? 'Ask Pip, or show Pip a drawing…' : 'Press “Start learning” to begin'}
                 submitMode="enter"
               />
               <AuiIf condition={state => state.thread.isRunning}>
@@ -203,6 +222,21 @@ export function TeacherPanel({ teacher, consent, onConsent, completed, lesson, o
       </AssistantRuntimeProvider>
     </TryIt.Provider>
   </aside>
+}
+
+function DrawingChip({ file }: { file?: File }) {
+  const [url, setUrl] = useState('')
+  useEffect(() => {
+    if (!file) return
+    const address = URL.createObjectURL(file)
+    setUrl(address)
+    return () => URL.revokeObjectURL(address)
+  }, [file])
+  return <AttachmentPrimitive.Root className="drawing-chip">
+    {url && <img src={url} alt="" />}
+    <span>Your drawing</span>
+    <AttachmentPrimitive.Remove aria-label="Remove the picture">×</AttachmentPrimitive.Remove>
+  </AttachmentPrimitive.Root>
 }
 
 function MessageText({ text, student }: { text: string; student: boolean }) {

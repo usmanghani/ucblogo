@@ -6,7 +6,10 @@ import { pathToFileURL } from 'node:url'
 
 export const SQUARE = 'CS\nSETPC 4\nSETPENSIZE 3\nREPEAT 4 [FD 80 RT 90]\nHT\nPRINT [SQUARE READY]'
 const BROKEN = 'CS\nREPEAT 4 [FDD 80 RT 90]'
+export const HOUSE = 'TO house\n  REPEAT 4 [FD 100 RT 90]\nEND\nTO roof\n  FD 100 RT 30\n  REPEAT 3 [FD 100 RT 120]\nEND\n\nCS\nhouse\nroof\nHT\nPRINT [HOUSE FROM YOUR DRAWING]'
 const REPAIRED = 'CS\nREPEAT 4 [FD 80 RT 90]\nPRINT [REPAIRED]'
+
+const hasPicture = message => Array.isArray(message?.content) && message.content.some(part => part.type === 'image_url' && String(part.image_url?.url).startsWith('data:image/'))
 
 const textOf = message => typeof message?.content === 'string'
   ? message.content
@@ -21,10 +24,14 @@ export function script(messages) {
   const context = users.join('\n')
   if (last?.role === 'tool') {
     const result = textOf(last)
+    if (result.includes('HOUSE FROM YOUR DRAWING')) return { text: 'I see a house: a square with a triangle roof. Here is the turtle’s version of it.' }
     if (result.includes('FDD')) return { tool: 'write_program', args: { code: REPAIRED } }
     if (result.includes('"completed"')) return { text: 'Lesson complete! You drew a square all by yourself.' }
     if (result.includes('REPAIRED')) return { text: 'I fixed my spelling mistake: `FDD` should be `FD`.' }
     return { text: 'Your red square is ready. Each side is 80 turtle steps.' }
+  }
+  if (/turn it into a Logo program|my drawing/i.test(asked)) {
+    return messages.some(hasPicture) ? { tool: 'write_program', args: { code: HOUSE } } : { text: 'I do not see a picture. Try attaching it again.' }
   }
   if (/slow/i.test(asked)) return { text: 'This slow answer should never arrive.', delayMs: 4000 }
   if (/broken/i.test(asked)) return { tool: 'write_program', args: { code: BROKEN } }

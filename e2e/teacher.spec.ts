@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
-import { SQUARE } from './fake-model.mjs'
+import { drawingPng } from './drawing-png.mjs'
+import { HOUSE, SQUARE } from './fake-model.mjs'
 
 // These tests script the language model, which only the local preview can do. Against a
 // deployment, scripts/smoke-teacher.mjs checks one real turn instead.
@@ -64,6 +65,35 @@ test('Pip writes a program into the code pane, draws it, and the chat survives a
   await expect(page.getByRole('heading', { name: 'Learn Logo by drawing.' })).toBeVisible()
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Learn Logo by drawing.' })).toBeVisible()
+})
+
+async function attachDrawing(page: Page) {
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: 'Add a picture of your drawing' }).click()
+  await (await chooser).setFiles({ name: 'my-house.png', mimeType: 'image/png', buffer: drawingPng() })
+}
+
+test('a student shows Pip a hand drawing and gets a Logo program for it', async ({ page }) => {
+  await enter(page)
+  await attachDrawing(page)
+  await expect(page.locator('.drawing-chip')).toContainText('Your drawing')
+  await page.getByRole('button', { name: 'Send' }).click()
+  await expect(page.getByText('Here is my drawing. Can you turn it into a Logo program?')).toBeVisible()
+  await expect(page.getByRole('img', { name: 'The drawing you sent' })).toBeVisible()
+  await expect(page.getByText('I see a house: a square with a triangle roof.')).toBeVisible({ timeout: 30000 })
+  await expect(page.getByRole('log')).toContainText('HOUSE FROM YOUR DRAWING')
+  expect(await program(page)).toBe(HOUSE)
+  await expect(page.locator('.drawing-chip')).toHaveCount(0)
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/drawing.png` })
+})
+
+test('a picture can be removed before sending, and only pictures are accepted', async ({ page, baseURL }) => {
+  await enter(page)
+  await attachDrawing(page)
+  await page.getByRole('button', { name: 'Remove the picture' }).click()
+  await expect(page.locator('.drawing-chip')).toHaveCount(0)
+  const refused = await page.evaluate(async url => (await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: [{ type: 'text', text: 'hi' }, { type: 'file', mediaType: 'application/pdf', filename: 'x.pdf', data: 'data:application/pdf;base64,JVBERi0xLjQK' }] }) })).status, `${baseURL}/eve/v1/session`)
+  expect(refused).toBe(415)
 })
 
 test('Pip sees its own mistake in the run report and repairs it', async ({ page }) => {

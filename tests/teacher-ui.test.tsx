@@ -6,6 +6,7 @@ import { LessonPath, toThreadMessage } from '../src/teacher/TeacherPanel'
 import { lessons } from '../src/teacher/lessons'
 import { PROGRESS_KEY, useConsent, useProgress } from '../src/teacher/progress'
 import { describeError } from '../src/teacher/useTeacher'
+import { drawingAttachments, fitInside } from '../src/teacher/drawing'
 import { act, renderHook } from '@testing-library/react'
 
 beforeEach(() => localStorage.clear())
@@ -58,6 +59,24 @@ describe('eve messages on assistant-ui', () => {
   })
 })
 
+describe('drawings', () => {
+  it('shrinks big photos and leaves small pictures alone', () => {
+    expect(fitInside(4000, 3000)).toEqual({ width: 1280, height: 960 })
+    expect(fitInside(3000, 4000)).toEqual({ width: 960, height: 1280 })
+    expect(fitInside(300, 200)).toEqual({ width: 300, height: 200 })
+  })
+  it('accepts only pictures and holds one until the message is sent', async () => {
+    expect(drawingAttachments.accept).toBe('image/jpeg,image/png,image/webp,image/gif')
+    const pending = await drawingAttachments.add({ file: new File(['x'], 'house.png', { type: 'image/png' }) })
+    expect(pending).toMatchObject({ type: 'image', name: 'house.png', status: { type: 'requires-action', reason: 'composer-send' } })
+  })
+  it('shows a sent picture when this tab still has it, and a note otherwise', () => {
+    const sent = { id: 'u1', role: 'user', parts: [{ type: 'text', text: 'my drawing' }, { type: 'file', mediaType: 'image/jpeg' }] } as unknown as EveMessage
+    expect(toThreadMessage(sent, 'data:image/jpeg;base64,AAAA').content).toEqual([{ type: 'text', text: 'my drawing' }, { type: 'image', image: 'data:image/jpeg;base64,AAAA' }])
+    expect(toThreadMessage(sent).content).toEqual([{ type: 'text', text: 'my drawing' }, { type: 'image', image: '' }])
+  })
+})
+
 describe('lessons and progress', () => {
   it('lists the course in order and marks finished and open lessons', () => {
     const onPick = vi.fn()
@@ -95,6 +114,7 @@ describe('failures in plain words', () => {
     [new Error('Pip is helping a lot of students right now. Wait a minute, then try again.'), /Wait a minute/],
     [new Error('AI Gateway received no credentials.'), /could not reach its AI model/],
     [new Error('Server returned 403.'), /not available on this site/],
+    [new Error('Server returned 413.'), /smaller photo/],
     [undefined, /ran into a problem/],
   ])('%s', (error, expected) => { expect(describeError(error)).toMatch(expected) })
 })

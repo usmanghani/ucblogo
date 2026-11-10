@@ -2,6 +2,7 @@
 // access checks and quota, AI Gateway credentials, and a complete model reply.
 // It does not judge how good the teaching is.
 import { pathToFileURL } from 'node:url'
+import { drawingPng } from '../e2e/drawing-png.mjs'
 
 /** Decide whether a finished turn's events show a working teacher. Throws with the reason if not. */
 export function verifyTurn(events) {
@@ -16,6 +17,15 @@ export function verifyTurn(events) {
   return { reply, model }
 }
 
+async function settle(delivery) {
+  const events = []
+  for await (const event of delivery.stream({ signal: AbortSignal.timeout(100_000) })) {
+    events.push(event)
+    if (event.type === 'turn.settled') break
+  }
+  return events
+}
+
 export async function smokeTeacher({ baseURL, secret = '', createClient, log = console.log, attempts = 3, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   if (!baseURL) throw new Error('PLAYWRIGHT_BASE_URL is required; live testing cannot be skipped')
   const url = new URL(baseURL)
@@ -27,17 +37,17 @@ export async function smokeTeacher({ baseURL, secret = '', createClient, log = c
   for (let attempt = 1; ; attempt++) {
     try {
       // Synthetic content only. Never send repository programs or user conversations.
-      const { delivery } = await client.sessions.create({
-        message: 'Say hello in one short sentence. Do not use any tools.',
-        clientContext: { program: '', lastRun: null, lesson: null, completed: [] },
-      })
-      const events = []
-      for await (const event of delivery.stream({ signal: AbortSignal.timeout(100_000) })) {
-        events.push(event)
-        if (event.type === 'turn.settled') break
-      }
-      const { model } = verifyTurn(events)
-      log(`Live teacher smoke passed: deployed agent route, access checks, quota, and a complete reply from ${model ?? 'the model'}`)
+      const page = { program: '', lastRun: null, lesson: null, completed: [] }
+      const { session, delivery } = await client.sessions.create({ message: 'Say hello in one short sentence. Do not use any tools.', clientContext: page })
+      const { model } = verifyTurn(await settle(delivery))
+      // A second turn with a picture: proves uploads are accepted, stored and shown to the model.
+      const picture = await session.send([
+        { type: 'text', text: 'Name the shape in this picture in one short sentence. Do not use any tools.' },
+        { type: 'file', mediaType: 'image/png', filename: 'drawing.png', data: `data:image/png;base64,${drawingPng(128).toString('base64')}` },
+      ], { clientContext: page })
+      const { reply } = verifyTurn(await settle(picture))
+      if (!/square|rectangle|box/i.test(reply)) throw new Error(`Pip did not recognise the test drawing. It said: ${reply.slice(0, 200)}`)
+      log(`Live teacher smoke passed: deployed agent route, access checks, quota, a complete reply from ${model ?? 'the model'}, and a picture it could see`)
       return
     } catch (error) {
       // Quota and upstream hiccups are worth a retry; a misconfiguration is not.
