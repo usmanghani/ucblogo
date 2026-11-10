@@ -44,7 +44,8 @@ jobs:
 
   browser:
     name: Browser tests
-    runs-on: ubuntu-latest
+    # Playwright 1.58 has no browser build for the newer ubuntu-latest image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +91,8 @@ jobs:
   vercel:
     name: Vercel deployment tests
     needs: deployment
-    runs-on: ubuntu-latest
+    # Playwright 1.58 has no browser build for the newer ubuntu-latest image.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
