@@ -1,42 +1,48 @@
-import { lazy, Suspense, useRef, useState, useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Interpreter } from './interpreter/interpreter'
 import type { LogoError } from './interpreter/errors'
 import { Turtle, type TurtleState } from './turtle/Turtle'
 import { VirtualFS } from './filesystem/VirtualFS'
-import { Editor } from './components/Editor'
-import { Blocks, type BlocksHandle } from './components/Blocks'
-import type { EditorHandle } from './components/Editor'
-import { TurtleCanvas } from './components/TurtleCanvas'
-import { REPL } from './components/REPL'
-import { Toolbar } from './components/Toolbar'
+import { Editor, type EditorHandle } from './components/Editor'
+import { ExamplesMenu } from './components/ExamplesMenu'
 import { HelpPanel } from './components/HelpPanel'
+import { REPL } from './components/REPL'
 import { StatusBar } from './components/StatusBar'
-import './styles/global.css'
+import { TurtleCanvas } from './components/TurtleCanvas'
 import type { Example } from './examples/catalog'
-import { runLogo } from './assistant/runner'
+import type { Lesson } from './teacher/lessons'
+import { useConsent, useProgress } from './teacher/progress'
+import { PipFace, TeacherPanel } from './teacher/TeacherPanel'
+import { useTeacher, type PageSnapshot } from './teacher/useTeacher'
+import './styles/global.css'
 
-const PipPanel = lazy(() => import('./assistant/PipPanel').then(module => ({ default: module.PipPanel })))
+type Pane = 'teacher' | 'code' | 'drawing'
+interface RunRecord { by: 'student' | 'pip'; code: string; output: string; errors: string[] }
 
 export default function App() {
   const [output, setOutput] = useState('')
   const [turtleState, setTurtleState] = useState<TurtleState | null>(null)
   const [showHelp, setShowHelp] = useState(false)
-  const [showPip, setShowPip] = useState(() => window.innerWidth > 1000)
-  const [pipMounted, setPipMounted] = useState(() => window.innerWidth > 1000)
-  const [showBlocks, setShowBlocks] = useState(false)
+  const [pane, setPane] = useState<Pane>('teacher')
+  const [lesson, setLesson] = useState<string | null>(null)
+  const [lastRun, setLastRun] = useState<RunRecord | null>(null)
+  const [checkpoint, setCheckpoint] = useState<{ before: string; after: string } | null>(null)
+  const [askedAbout, setAskedAbout] = useState<RunRecord | null>(null)
+  const { completed, complete } = useProgress()
+  const { consent, accept } = useConsent()
 
   const interpreterRef = useRef<Interpreter | null>(null)
   const turtleRef = useRef<Turtle | null>(null)
   const fsRef = useRef<VirtualFS | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const editorRef = useRef<EditorHandle | null>(null)
-  const blocksRef = useRef<BlocksHandle | null>(null)
-  const executingEditor = useRef(false)
   const runController = useRef<AbortController | null>(null)
   const activeRun = useRef<Promise<unknown>>(Promise.resolve())
+  const record = useRef<{ output: string; errors: string[]; markEditor: boolean } | null>(null)
+  const lastRunRef = useRef<RunRecord | null>(null)
   useEffect(() => () => runController.current?.abort(), [])
 
-  // Initialize the filesystem once on mount (hydrate from IndexedDB).
+  // Hydrate the browser file system once (Save / Load, and Logo's own file primitives).
   useEffect(() => {
     const fs = new VirtualFS()
     fsRef.current = fs
@@ -44,57 +50,57 @@ export default function App() {
   }, [])
 
   const onCanvasReady = useCallback((canvas: HTMLCanvasElement) => {
-    // Same canvas re-reported (e.g. a real window resize): just resize in place.
-    if (turtleRef.current && canvasRef.current === canvas) {
-      turtleRef.current.setSize(canvas.width, canvas.height)
-      return
-    }
+    if (turtleRef.current && canvasRef.current === canvas) return
     canvasRef.current = canvas
-    const t = new Turtle(canvas, {
-      onStateChange: (state) => setTurtleState({ ...state }),
-    })
-    turtleRef.current = t
-
-    const interp = new Interpreter({
-      turtle: t,
+    const turtle = new Turtle(canvas, { onStateChange: state => setTurtleState({ ...state }) })
+    turtleRef.current = turtle
+    interpreterRef.current = new Interpreter({
+      turtle,
       fs: fsRef.current ?? undefined,
-      onOutput: (text) => setOutput((prev) => prev + text),
-      onError: (error) => {
+      onOutput: text => {
+        if (record.current) record.current.output += text
+        setOutput(previous => previous + text)
+      },
+      onError: error => {
         const message = error.message || String(error)
-        setOutput((prev) => prev + `${message}\n`)
-        const location = (error as LogoError).location
-        if (executingEditor.current) editorRef.current?.showError(message, location)
+        setOutput(previous => previous + `${message}\n`)
+        if (record.current) {
+          record.current.errors.push(message)
+          if (record.current.markEditor) editorRef.current?.showError(message, (error as LogoError).location)
+        }
       },
     })
-    interpreterRef.current = interp
-    setTurtleState(t.getState())
+    setTurtleState(turtle.getState())
   }, [])
 
-  const runCode = useCallback(async () => {
+  /** Run the program in the code pane, animated, from a clean turtle. */
+  const runCode = useCallback(async (by: 'student' | 'pip' = 'student') => {
     runController.current?.abort()
     const controller = new AbortController()
     runController.current = controller
     await activeRun.current
     if (controller.signal.aborted) return
+    const code = editorRef.current?.getValue() ?? ''
+    const current = { output: '', errors: [] as string[], markEditor: true }
+    record.current = current
     setOutput('')
     editorRef.current?.clearErrors()
     try {
-      if (showBlocks && !blocksRef.current) throw new Error('Blocks workspace is not ready')
-      const code = showBlocks ? blocksRef.current!.getCode() : editorRef.current?.getValue() ?? ''
-      executingEditor.current = !showBlocks
       const execution = interpreterRef.current?.runAsync(code, controller.signal) ?? Promise.resolve('')
       activeRun.current = execution
       await execution
-    } catch (error) {
-      setOutput(`${error instanceof Error ? error.message : String(error)}\n`)
     } finally {
-      if (runController.current === controller) { executingEditor.current = false; runController.current = null }
+      if (record.current === current) record.current = null
+      if (runController.current === controller) runController.current = null
+      const finished: RunRecord = { by, code, output: current.output.slice(0, 2000), errors: current.errors.slice(0, 5) }
+      lastRunRef.current = finished
+      setLastRun(finished)
     }
-  }, [showBlocks])
+  }, [])
 
   const stop = useCallback(() => {
     runController.current?.abort()
-    setOutput((prev) => prev + '\n[Stopped]\n')
+    setOutput(previous => previous + '\n[Stopped]\n')
   }, [])
 
   const clearScreen = useCallback(() => {
@@ -103,97 +109,142 @@ export default function App() {
     setOutput('')
   }, [])
 
-  const onHelp = useCallback(() => setShowHelp((v) => !v), [])
-
   const onSave = useCallback(() => {
     const name = prompt('File name:')
-    if (name && interpreterRef.current && fsRef.current) {
-      const code = editorRef.current?.getValue() ?? ''
-      fsRef.current.write(name, code)
-      setOutput((prev) => prev + `Saved to ${name}\n`)
+    if (name && fsRef.current) {
+      fsRef.current.write(name, editorRef.current?.getValue() ?? '')
+      setOutput(previous => previous + `Saved to ${name}\n`)
     }
   }, [])
 
   const onLoad = useCallback(() => {
     const name = prompt('File name:')
-    if (name && fsRef.current) {
-      const code = fsRef.current.read(name)
-      if (code) {
-        editorRef.current?.setValue(code)
-        setOutput((prev) => prev + `Loaded ${name}\n`)
-      } else {
-        setOutput((prev) => prev + `File ${name} not found\n`)
-      }
+    if (!name || !fsRef.current) return
+    const code = fsRef.current.read(name)
+    if (code) {
+      editorRef.current?.setValue(code)
+      setOutput(previous => previous + `Loaded ${name}\n`)
+    } else {
+      setOutput(previous => previous + `File ${name} not found\n`)
     }
   }, [])
 
   const loadExample = useCallback((example: Example) => {
     const current = editorRef.current?.getValue() ?? ''
-    if (current.trim() && current !== example.source && !window.confirm(`Replace the current text program with ${example.title}? Save a copy first if you want to keep it.`)) return
+    if (current.trim() && current !== example.source && !window.confirm(`Replace the current program with ${example.title}? Save a copy first if you want to keep it.`)) return
     runController.current?.abort()
     editorRef.current?.setValue(example.source)
     editorRef.current?.clearErrors()
-    setShowBlocks(false)
+    setCheckpoint(null)
     setOutput(`Loaded ${example.title}. Press Run to draw it.\n`)
   }, [])
 
   const replSubmit = useCallback((line: string) => {
     if (runController.current && !runController.current.signal.aborted) {
-      setOutput(prev => prev + 'Stop the running program before using the command line.\n')
+      setOutput(previous => previous + 'Stop the running program before using the command line.\n')
       return
     }
-    const interp = interpreterRef.current
-    if (interp) {
-      const result = interp.evalLine(line)
-      if (result) setOutput((prev) => prev + result + '\n')
-    }
+    const result = interpreterRef.current?.evalLine(line)
+    if (result) setOutput(previous => previous + result + '\n')
   }, [])
 
+  /** Put code in the pane and run it: Pip's write_program tool, and the "Try it" buttons. */
+  const showProgram = useCallback((code: string, by: 'student' | 'pip') => {
+    const before = editorRef.current?.getValue() ?? ''
+    editorRef.current?.setValue(code)
+    setCheckpoint(before !== code ? { before, after: code } : null)
+    void runCode(by)
+  }, [runCode])
+
+  const undo = useCallback(() => {
+    if (!checkpoint) return
+    if (editorRef.current?.getValue() === checkpoint.after) {
+      runController.current?.abort()
+      editorRef.current?.setValue(checkpoint.before)
+      editorRef.current?.clearErrors()
+    }
+    setCheckpoint(null)
+  }, [checkpoint])
+
+  const getPage = useCallback((): PageSnapshot => {
+    const program = editorRef.current?.getValue() ?? ''
+    const run = lastRunRef.current
+    return {
+      program,
+      lastRun: run && { by: run.by, current: run.code === program, output: run.output, errors: run.errors },
+      lesson,
+      completed,
+    }
+  }, [lesson, completed])
+
+  const teacher = useTeacher({
+    getPage,
+    onProgram: code => showProgram(code, 'pip'),
+    onLessonComplete: complete,
+  })
+
+  // Offer Pip's help once for each failed run the student started themselves.
+  const runProblem = lastRun && lastRun.by === 'student' && lastRun.errors.length && lastRun !== askedAbout ? lastRun.errors[0] : null
+  useEffect(() => { if (teacher.working) setAskedAbout(lastRunRef.current) }, [teacher.working])
+
   return (
-    <div className="app">
-      <Toolbar onRun={runCode} onStop={stop} onClear={clearScreen} onSave={onSave} onLoad={onLoad} onHelp={onHelp} onExample={loadExample} />
-      <div className="workspace-tabs"><button onClick={() => setShowBlocks(value => !value)}>{showBlocks ? 'Text editor' : 'Blocks editor'}</button><button aria-expanded={showPip} onClick={() => { if (!showPip) setPipMounted(true); setShowPip(value => !value) }}>Pip assistant</button></div>
-      <div className="app-body"><div className="workspace-body">
+    <div className="app" data-pane={pane}>
+      <header className="masthead">
+        <div className="brand"><PipFace /><span>Logo Teacher</span></div>
+        <nav className="masthead-tools" aria-label="Workspace">
+          <ExamplesMenu onSelect={loadExample} />
+          <button type="button" onClick={() => setShowHelp(value => !value)} title="Help">Logo words</button>
+        </nav>
+      </header>
 
-      <div className="main">
-        <div className="editor-panel">
-          <div style={{ height: '100%', display: showBlocks ? 'none' : 'block' }}><Editor ref={editorRef} onRun={runCode} /></div>
-          {showBlocks && <Blocks ref={blocksRef} onRun={runCode} />}
-        </div>
-        <div className="canvas-panel">
-          <TurtleCanvas onReady={onCanvasReady} />
-        </div>
-      </div>
+      <main className="classroom">
+        <TeacherPanel
+          teacher={teacher}
+          consent={consent}
+          onConsent={accept}
+          completed={completed}
+          lesson={lesson}
+          onLesson={(picked: Lesson | null) => setLesson(picked?.id ?? null)}
+          onTry={code => { showProgram(code, 'student'); setPane('drawing') }}
+          runProblem={runProblem}
+        />
 
-      <div className="bottom">
-        <REPL onSubmit={replSubmit} />
-        <div className="output" role="log">
-          {output.split('\n').map((line, i) => (
-            <div key={i}>{line}</div>
-          ))}
-        </div>
-      </div>
+        <section className="canvas-area" aria-label="Your Logo workspace">
+          <section className="pane code-pane" aria-label="Code">
+            <header className="pane-header">
+              <h2>Code</h2>
+              <div className="pane-actions">
+                {checkpoint && <button type="button" onClick={undo}>Undo change</button>}
+                <button type="button" onClick={onSave}>Save</button>
+                <button type="button" onClick={onLoad}>Load</button>
+              </div>
+            </header>
+            <div className="editor-panel"><Editor ref={editorRef} onRun={() => void runCode('student')} /></div>
+          </section>
 
-      </div>
-      {pipMounted && <Suspense fallback={null}><PipPanel hidden={!showPip} onClose={() => setShowPip(false)} workspace={{
-        read: () => editorRef.current?.getValue() ?? '',
-        write: code => { runController.current?.abort(); setShowBlocks(false); editorRef.current?.setValue(code) },
-        run: async signal => {
-          runController.current?.abort()
-          await activeRun.current
-          const code = editorRef.current?.getValue() ?? ''
-          const result = await runLogo(code, canvasRef.current?.width ?? 2000, canvasRef.current?.height ?? 1500, signal)
-          if (signal.aborted || editorRef.current?.getValue() !== code) {
-            result.image?.close()
-            return { errors: ['Program changed or run stopped. Drawing was not applied.'] }
-          }
-          if (result.image && result.state) { turtleRef.current?.applySnapshot(result.image, result.state); result.image.close() }
-          setOutput([result.output, ...result.errors].filter(Boolean).join('\n'))
-          return { output: result.output, errors: result.errors, state: result.state, success: !result.errors.length }
-        },
-      }}/></Suspense>}
-      </div>
-      <StatusBar state={turtleState} />
+          <section className="pane drawing-pane" aria-label="Drawing">
+            <header className="pane-header">
+              <h2>Drawing</h2>
+              <div className="pane-actions">
+                <button type="button" className="run" onClick={() => void runCode('student')} title="Run (Ctrl+Enter)">▶ Run</button>
+                <button type="button" onClick={stop} title="Stop">■ Stop</button>
+                <button type="button" onClick={clearScreen} title="Clear Screen">Clear</button>
+              </div>
+            </header>
+            <div className="canvas-panel"><TurtleCanvas onReady={onCanvasReady} /></div>
+            <StatusBar state={turtleState} />
+            <div className="output" role="log" aria-label="Printed output">
+              {output.split('\n').map((line, index) => <div key={index}>{line}</div>)}
+            </div>
+            <REPL onSubmit={replSubmit} />
+          </section>
+        </section>
+      </main>
+
+      <nav className="pane-tabs" aria-label="Show">
+        {([['teacher', 'Pip'], ['code', 'Code'], ['drawing', 'Drawing']] as const).map(([id, label]) =>
+          <button key={id} type="button" aria-pressed={pane === id} onClick={() => setPane(id)}>{label}</button>)}
+      </nav>
 
       {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}
     </div>

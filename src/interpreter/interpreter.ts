@@ -61,6 +61,18 @@ export class Interpreter {
     }
   }
 
+  /** Run without a clock or a screen: WAIT is instant and the run is time-boxed. */
+  runHeadless(source: string, timeLimitMs = 2000): string {
+    try {
+      const ast = parse(tokenize(source), this.evaluator)
+      return toLogoString(this.evaluator.runProgramHeadless(ast, this.env, timeLimitMs))
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e))
+      this.onError?.(error)
+      return ''
+    }
+  }
+
   /** Cooperative execution lets WAIT and long programs yield to browser rendering. */
   async runAsync(source: string, signal: AbortSignal): Promise<string> {
     this.turtle?.beginDrawingBatch()

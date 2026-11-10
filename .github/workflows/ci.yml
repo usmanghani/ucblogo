@@ -34,6 +34,7 @@ jobs:
       - run: npm run test:ci
       - run: npm run lint
       - run: npm run build
+      - run: npm run build:agent
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -107,7 +108,7 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: ${{ needs.deployment.outputs.preview }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.VERCEL_AUTOMATION_BYPASS_SECRET || '' }}
-      - name: Verify live assistant credentials and streaming
+      - name: Verify a live turn with Pip
         run: npm run test:live
         env:
           PLAYWRIGHT_BASE_URL: ${{ needs.deployment.outputs.preview }}

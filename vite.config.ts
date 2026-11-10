@@ -1,14 +1,9 @@
-import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import { loadEnv } from 'vite'
-import { assistantDev } from './server/dev.ts'
+import { eveVite } from 'eve/vite'
+import { defineConfig } from 'vite'
 
-export default defineConfig(({ mode }) => ({
-  plugins: [react(), assistantDev(process.env.OPENROUTER_API_KEY || loadEnv(mode, process.cwd(), '').OPENROUTER_API_KEY)],
-  test: {
-    globals: true,
-    include: ['tests/**/*.test.{ts,tsx}'],
-    environment: 'jsdom',
-    setupFiles: './tests/setup.ts',
-  },
-}))
+// eveVite runs Pip (the eve agent in ./agent) beside the page in `vite` and `vite preview`
+// and proxies /eve/v1/* to it, so the browser only ever talks to one origin.
+export default defineConfig({
+  plugins: [react(), eveVite()],
+})

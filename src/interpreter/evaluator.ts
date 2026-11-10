@@ -64,6 +64,19 @@ export class Evaluator implements AritySource {
   runProgram(nodes: ASTNode[], env: Environment): LogoValue {
     return this.completeSync(this.runProgramSteps(nodes, env))
   }
+  /** Run to completion with no clock: WAIT returns at once and the run stops at a deadline. */
+  runProgramHeadless(nodes: ASTNode[], env: Environment, timeLimitMs: number): LogoValue {
+    const iterator = this.runProgramSteps(nodes, env)
+    const deadline = Date.now() + timeLimitMs
+    try {
+      let next = iterator.next()
+      while (!next.done) {
+        if (Date.now() > deadline) throw new LogoError('Execution limit exceeded', 'USER')
+        next = iterator.next()
+      }
+      return next.value
+    } finally { iterator.return('') }
+  }
   async runProgramAsync(nodes: ASTNode[], env: Environment, signal: AbortSignal, onPause?: () => void): Promise<LogoValue> {
     const iterator = this.runProgramSteps(nodes, env)
     try {
