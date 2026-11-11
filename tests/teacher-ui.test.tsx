@@ -70,9 +70,8 @@ describe('drawings', () => {
     const pending = await drawingAttachments.add({ file: new File(['x'], 'house.png', { type: 'image/png' }) })
     expect(pending).toMatchObject({ type: 'image', name: 'house.png', status: { type: 'requires-action', reason: 'composer-send' } })
   })
-  it('shows a sent picture when this tab still has it, and a note otherwise', () => {
+  it('keeps a sent picture in the conversation as an image part', () => {
     const sent = { id: 'u1', role: 'user', parts: [{ type: 'text', text: 'my drawing' }, { type: 'file', mediaType: 'image/jpeg' }] } as unknown as EveMessage
-    expect(toThreadMessage(sent, 'data:image/jpeg;base64,AAAA').content).toEqual([{ type: 'text', text: 'my drawing' }, { type: 'image', image: 'data:image/jpeg;base64,AAAA' }])
     expect(toThreadMessage(sent).content).toEqual([{ type: 'text', text: 'my drawing' }, { type: 'image', image: '' }])
   })
 })

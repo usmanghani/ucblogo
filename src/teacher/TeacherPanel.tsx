@@ -23,12 +23,12 @@ type ContentPart = Exclude<ThreadMessageLike['content'], string>[number]
 const SETTLED = new Set(['completed', 'failed', 'rejected', 'cancelled'])
 
 /** Map an eve message onto assistant-ui's message shape. Pip's private reasoning is not shown. */
-export function toThreadMessage(message: EveMessage, drawing?: string): ThreadMessageLike {
+export function toThreadMessage(message: EveMessage): ThreadMessageLike {
   const content: ContentPart[] = []
   for (const part of message.parts) {
     if (part.type === 'text' && part.text) content.push({ type: 'text', text: part.text })
     // A picture the student attached. Its address is only known while this tab still holds it.
-    if (part.type === 'file' && part.mediaType.startsWith('image/')) content.push({ type: 'image', image: part.url ?? drawing ?? '' })
+    if (part.type === 'file' && part.mediaType.startsWith('image/')) content.push({ type: 'image', image: part.url ?? '' })
     if (part.type === 'tool') {
       const settled = SETTLED.has(part.state)
       content.push({
@@ -45,6 +45,9 @@ export function toThreadMessage(message: EveMessage, drawing?: string): ThreadMe
 
 /** What is sent when a student attaches a drawing and types nothing. */
 export const DRAWING_REQUEST = 'Here is my drawing. Can you turn it into a Logo program?'
+
+/** Pictures this tab sent, by message id. Read at render time: converted messages are cached. */
+const Drawings = createContext<ReadonlyMap<string, string>>(new Map())
 
 const TryIt = createContext<((code: string) => void) | undefined>(undefined)
 
@@ -109,7 +112,7 @@ export function TeacherPanel({ teacher, consent, onConsent, completed, lesson, o
     messages: teacher.messages as EveMessage[],
     isRunning: teacher.working,
     isDisabled: blocked,
-    convertMessage: message => toThreadMessage(message, teacher.drawings.get(message.id)),
+    convertMessage: toThreadMessage,
     adapters: { attachments: drawingAttachments },
     onNew: async message => {
       const text = message.content.map(part => (part.type === 'text' ? part.text : '')).join('\n').trim()
@@ -144,7 +147,7 @@ export function TeacherPanel({ teacher, consent, onConsent, completed, lesson, o
       <LessonPath completed={completed} current={lesson} onPick={startLesson} disabled={blocked || teacher.working} />
     </div>}
 
-    <TryIt.Provider value={onTry}>
+    <Drawings.Provider value={teacher.drawings}><TryIt.Provider value={onTry}>
       <AssistantRuntimeProvider runtime={runtime}>
         <ThreadPrimitive.Root className="thread">
           <ThreadPrimitive.Viewport className="thread-viewport" aria-label="Conversation with Pip">
@@ -177,9 +180,7 @@ export function TeacherPanel({ teacher, consent, onConsent, completed, lesson, o
                 <MessagePrimitive.Parts>
                   {({ part }) => {
                     if (part.type === 'text') return part.text ? <MessageText text={part.text} student={message.role === 'user'} /> : null
-                    if (part.type === 'image') return part.image
-                      ? <img className="sent-drawing" src={part.image} alt="The drawing you sent" />
-                      : <div className="sent-drawing-note">You sent a drawing</div>
+                    if (part.type === 'image') return <SentDrawing src={part.image} messageId={message.id} />
                     if (part.type === 'tool-call') return <ToolNote key={part.toolCallId} part={part} />
                     return null
                   }}
@@ -220,8 +221,16 @@ export function TeacherPanel({ teacher, consent, onConsent, completed, lesson, o
           </footer>
         </ThreadPrimitive.Root>
       </AssistantRuntimeProvider>
-    </TryIt.Provider>
+    </TryIt.Provider></Drawings.Provider>
   </aside>
+}
+
+function SentDrawing({ src, messageId }: { src: string; messageId: string }) {
+  const mine = useContext(Drawings).get(messageId)
+  const address = src || mine
+  return address
+    ? <img className="sent-drawing" src={address} alt="The drawing you sent" />
+    : <div className="sent-drawing-note">You sent a drawing</div>
 }
 
 function DrawingChip({ file }: { file?: File }) {
