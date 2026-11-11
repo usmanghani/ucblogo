@@ -12,6 +12,8 @@ The page has three panes:
 
 Pip can put a program in your code pane and run it while you watch, check code privately before showing it, and mark a lesson complete when you have done its challenge. You can also show Pip a photo of something you drew on paper, and Pip will write a Logo program that draws it. Every code block in Pip's replies has a **Try it** button. When a program you ran stops with an error, one click asks Pip what went wrong.
 
+Save any program as one of your own examples with **My programs**. It works without an account, in your browser; sign in and your programs and finished lessons are kept with your account and follow you to any computer.
+
 Pip is told what is in your code pane and how your last run went with every message, so you never have to paste code into the chat.
 
 ## How it is built
@@ -23,7 +25,10 @@ agent/                 Pip, an eve agent (https://eve.dev)
   tools/               write_program, test_program, complete_lesson
   channels/eve.ts      who may talk to Pip, and what page context reaches the model
   lib/                 access check, usage quota, page-context sanitiser, prompt
+api/                   Vercel functions: account, saved programs, progress
+server/                their handlers, database and auth (Better Auth on Postgres)
 src/
+  account/             sign-in, My programs, and syncing progress
   teacher/             the Pip pane: assistant-ui chat on an eve session, lessons, progress
   components/          code editor, turtle canvas, command line, Logo word reference
   interpreter/         the Logo language: lexer, parser, evaluator, primitives
@@ -82,11 +87,14 @@ The browser tests run the real page, agent, tools and Logo engine. Only the lang
 
 Push to a Git-connected Vercel project. `vercel.ts` builds the page with Vite and adds Pip as an eve service; Vercel Workflow keeps conversations durable, and AI Gateway serves the model using the deployment's own identity, so there is no provider key to set.
 
+Accounts are optional and off until the project has a Postgres database and a secret: see [docs/accounts.md](docs/accounts.md).
+
 Before the first production deploy, read [docs/pip.md](docs/pip.md): Pip is a public, anonymous endpoint that spends money, and it refuses to answer until its two usage-limit rules exist in the project's Firewall.
 
 ## More
 
 - [docs/pip.md](docs/pip.md): how Pip works, its configuration, limits and privacy
+- [docs/accounts.md](docs/accounts.md): sign-in, saved programs, progress, and how to turn accounts on
 - [docs/ci.md](docs/ci.md): tests and release checks
 - [docs/animation.md](docs/animation.md): `WAIT` and animated programs
 - [docs/terrapin-parity.md](docs/terrapin-parity.md) and [docs/interpreter-build-notes.md](docs/interpreter-build-notes.md): notes on the interpreter

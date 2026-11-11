@@ -19,8 +19,7 @@ test('loads the app and core controls without browser exceptions', async ({ page
   for (const title of ['Run (Ctrl+Enter)', 'Stop', 'Clear Screen', 'Help']) {
     await expect(page.getByTitle(title, { exact: true })).toBeVisible()
   }
-  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Load', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^My programs/ })).toBeVisible()
   await expect(page.getByRole('complementary', { name: 'Pip, your Logo teacher' })).toBeVisible()
   await command(page, 'PRINT 6 * 7')
   await expect(page.getByRole('log')).toContainText('42')

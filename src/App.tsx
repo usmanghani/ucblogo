@@ -4,12 +4,14 @@ import type { LogoError } from './interpreter/errors'
 import { Turtle, type TurtleState } from './turtle/Turtle'
 import { VirtualFS } from './filesystem/VirtualFS'
 import { Editor, type EditorHandle } from './components/Editor'
-import { ExamplesMenu } from './components/ExamplesMenu'
+import { ProgramsDialog, SignInDialog } from './account/AccountDialogs'
+import { useAccount } from './account/useAccount'
+import { usePrograms } from './account/usePrograms'
+import { ExamplesMenu, type LoadableProgram } from './components/ExamplesMenu'
 import { HelpPanel } from './components/HelpPanel'
 import { REPL } from './components/REPL'
 import { StatusBar } from './components/StatusBar'
 import { TurtleCanvas } from './components/TurtleCanvas'
-import type { Example } from './examples/catalog'
 import type { Lesson } from './teacher/lessons'
 import { useConsent, useProgress } from './teacher/progress'
 import { PipFace, TeacherPanel } from './teacher/TeacherPanel'
@@ -28,7 +30,10 @@ export default function App() {
   const [lastRun, setLastRun] = useState<RunRecord | null>(null)
   const [checkpoint, setCheckpoint] = useState<{ before: string; after: string } | null>(null)
   const [askedAbout, setAskedAbout] = useState<RunRecord | null>(null)
-  const { completed, complete } = useProgress()
+  const account = useAccount()
+  const programs = usePrograms(account.user)
+  const [dialog, setDialog] = useState<'programs' | 'sign-in' | null>(null)
+  const { completed, complete } = useProgress(account.user)
   const { consent, accept } = useConsent()
 
   const interpreterRef = useRef<Interpreter | null>(null)
@@ -110,27 +115,7 @@ export default function App() {
     setOutput('')
   }, [])
 
-  const onSave = useCallback(() => {
-    const name = prompt('File name:')
-    if (name && fsRef.current) {
-      fsRef.current.write(name, editorRef.current?.getValue() ?? '')
-      setOutput(previous => previous + `Saved to ${name}\n`)
-    }
-  }, [])
-
-  const onLoad = useCallback(() => {
-    const name = prompt('File name:')
-    if (!name || !fsRef.current) return
-    const code = fsRef.current.read(name)
-    if (code) {
-      editorRef.current?.setValue(code)
-      setOutput(previous => previous + `Loaded ${name}\n`)
-    } else {
-      setOutput(previous => previous + `File ${name} not found\n`)
-    }
-  }, [])
-
-  const loadExample = useCallback((example: Example) => {
+  const loadExample = useCallback((example: LoadableProgram) => {
     const current = editorRef.current?.getValue() ?? ''
     if (current.trim() && current !== example.source && !window.confirm(`Replace the current program with ${example.title}? Save a copy first if you want to keep it.`)) return
     runController.current?.abort()
@@ -193,8 +178,11 @@ export default function App() {
       <header className="masthead">
         <div className="brand"><PipFace /><span>Logo Teacher</span></div>
         <nav className="masthead-tools" aria-label="Workspace">
-          <ExamplesMenu onSelect={loadExample} />
+          <ExamplesMenu onSelect={loadExample} mine={programs.programs} />
           <button type="button" onClick={() => setShowHelp(value => !value)} title="Help">Logo words</button>
+          {account.available && (account.user
+            ? <span className="account-chip"><strong>{account.user.name}</strong><button type="button" onClick={() => void account.signOut()}>Sign out</button></span>
+            : <button type="button" onClick={() => setDialog('sign-in')}>Sign in</button>)}
         </nav>
       </header>
 
@@ -216,8 +204,7 @@ export default function App() {
               <h2>Code</h2>
               <div className="pane-actions">
                 {checkpoint && <button type="button" onClick={undo}>Undo change</button>}
-                <button type="button" onClick={onSave}>Save</button>
-                <button type="button" onClick={onLoad}>Load</button>
+                <button type="button" onClick={() => setDialog('programs')}>My programs{programs.programs.length ? ` (${programs.programs.length})` : ''}</button>
               </div>
             </header>
             <div className="editor-panel"><Editor ref={editorRef} onRun={() => void runCode('student')} /></div>
@@ -247,6 +234,9 @@ export default function App() {
           <button key={id} type="button" aria-pressed={pane === id} onClick={() => setPane(id)}>{label}</button>)}
       </nav>
 
+      {dialog === 'programs' && <ProgramsDialog programs={programs} account={account} getSource={() => editorRef.current?.getValue() ?? ''}
+        onOpen={loadExample} onSignIn={() => setDialog('sign-in')} onClose={() => setDialog(null)} />}
+      {dialog === 'sign-in' && <SignInDialog account={account} onClose={() => setDialog(null)} />}
       {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}
     </div>
   )
