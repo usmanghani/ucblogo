@@ -1,10 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Readable } from 'node:stream'
-import type { ApiOptions } from './api.js'
+import type { ApiOptions } from './api.ts'
 
 type Handler = (request: Request, options?: ApiOptions) => Promise<Response>
 
-/** Run a web-standard handler behind Node's (req, res), as Vercel functions and Vite's server call it. */
+/** Run a web-standard handler behind Node's (req, res), which is how Vite's server calls middleware. */
 export async function serve(handler: Handler, req: IncomingMessage & { body?: unknown }, res: ServerResponse, options?: ApiOptions): Promise<void> {
   try {
     const headers = new Headers()

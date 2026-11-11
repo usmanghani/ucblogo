@@ -13,5 +13,9 @@ export default await withEve({
       outputDirectory: 'dist',
     },
   },
-  routes: [{ src: '^(.*)$', destination: { type: 'service', service: 'web' } }],
+  routes: [
+    // Accounts, saved programs and progress are served by the agent service (agent/channels/account.ts).
+    { src: '^/api/(.*)$', destination: { type: 'service', service: 'eve' } },
+    { src: '^(.*)$', destination: { type: 'service', service: 'web' } },
+  ],
 })

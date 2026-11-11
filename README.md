@@ -25,8 +25,8 @@ agent/                 Pip, an eve agent (https://eve.dev)
   tools/               write_program, test_program, complete_lesson
   channels/eve.ts      who may talk to Pip, and what page context reaches the model
   lib/                 access check, usage quota, page-context sanitiser, prompt
-api/                   Vercel functions: account, saved programs, progress
-server/                their handlers, database and auth (Better Auth on Postgres)
+server/                accounts, saved programs and progress: handlers, database, auth
+                       (Better Auth on Postgres), served by agent/channels/account.ts
 src/
   account/             sign-in, My programs, and syncing progress
   teacher/             the Pip pane: assistant-ui chat on an eve session, lessons, progress

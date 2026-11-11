@@ -41,7 +41,7 @@ Preview deployments share whichever database their `DATABASE_URL` points at. Giv
 ## How it works
 
 - **Sign-in** is email and password through [Better Auth](https://www.better-auth.com), running inside this app with the same database. Passwords are hashed by Better Auth; sessions are an `HttpOnly` cookie that lasts 30 days. There is no email verification and no password reset, because the app sends no email. Add Better Auth's email features if you need them.
-- **The API** is three Vercel functions in `api/`, thin wrappers over `server/api.ts`: `/api/account` (who am I, sign up, sign in, sign out), `/api/programs` and `/api/progress`. `vite` and `vite preview` serve the same handlers through the plugin in `server/dev.ts`.
+- **The API** is three routes whose handlers are in `server/api.ts`: `/api/account` (who am I, sign up, sign in, sign out), `/api/programs` and `/api/progress`. When deployed they are served by the agent service, through `agent/channels/account.ts`; `vercel.ts` routes `/api/*` there. `vite` and `vite preview` serve the same handlers through the plugin in `server/dev.ts`.
 - **Ownership.** Every SQL statement on a saved program or progress row includes the signed-in user's id, so one student cannot read, change or delete another's.
 - **Other sites.** Writes are refused unless they come from this site's own pages, the same check Pip uses.
 - **Guessing and bulk sign-ups.** Sign-in and sign-up attempts are counted against the per-visitor Firewall rule that meters Pip (`pip-assistant-ip`, see [pip.md](pip.md)).

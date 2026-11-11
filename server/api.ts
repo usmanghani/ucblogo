@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { accountsConfigured, getBackend, type Backend } from './db.js'
-import { lessons } from '../src/teacher/lessons.js'
+import { accountsConfigured, getBackend, type Backend } from './db.ts'
+import { lessons } from '../src/teacher/lessons.ts'
 
 export const MAX_TITLE = 80
 export const MAX_SOURCE = 30_000
@@ -45,13 +45,20 @@ const text = (value: unknown, limit: number): string | null => (typeof value ===
 
 interface Caller { backend: Backend; userId: string; name: string; email: string }
 
+/** The address students use. Behind Vercel's proxy the request itself can look like plain http. */
+function publicOrigin(request: Request): string {
+  const url = new URL(request.url)
+  if (!process.env.VERCEL) return url.origin
+  return `https://${request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? url.host}`
+}
+
 /** Common front door: method allowed, same-site for writes, accounts configured, and who is asking. */
 async function enter(request: Request, methods: string[], needUser: boolean): Promise<Response | { backend: Backend; caller: Caller | null }> {
   if (!methods.includes(request.method)) return fail('Method not allowed.', 405)
   if (request.method !== 'GET' && !sameSite(request)) return fail('Logo Teacher only answers its own pages.', 403)
   if (!accountsConfigured()) return fail('Accounts are not set up on this site.', 503)
   let backend: Backend
-  try { backend = await getBackend(new URL(request.url).origin) } catch (error) {
+  try { backend = await getBackend(publicOrigin(request)) } catch (error) {
     console.error('Account storage is unavailable', { reason: error instanceof Error ? error.name : 'unknown' })
     return fail('Accounts are unavailable right now. Try again in a moment.', 503)
   }
