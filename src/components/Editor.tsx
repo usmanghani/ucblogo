@@ -17,7 +17,7 @@ export interface EditorHandle {
 export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function Editor({ onRun }, ref) {
   const onRunRef = useRef(onRun)
   onRunRef.current = onRun
-  const session = useProgramSession('TO rainbow_spiral :size :angle\n  IF :size > 300 [STOP]\n  SETPENCOLOR (SETBGCOLOR)\n  FORWARD :size\n  RIGHT :angle\n  rainbow_spiral (:size + 2) :angle\nEND\n\nCS\nrainbow_spiral 1 89\n')
+  const session = useProgramSession('; Welcome! This is your code pane.\n; Press Run to see what the turtle draws.\n\nCS\nREPEAT 4 [FD 100 RT 90]\n')
   const programRef = useRef(session.program)
   programRef.current = session.program
   const editorRef = useRef<unknown>(null)
@@ -129,21 +129,23 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
     })
 
     m.editor.defineTheme('logo-theme', {
-      base: 'vs-dark',
+      base: 'vs',
       inherit: true,
       rules: [
-        { token: 'comment', foreground: '6A9955' },
-        { token: 'string', foreground: 'CE9178' },
-        { token: 'variable', foreground: '9CDCFE' },
-        { token: 'keyword', foreground: 'C586C0' },
-        { token: 'number', foreground: 'B5CEA8' },
-        { token: 'delimiter', foreground: 'D4D4D4' },
-        { token: 'operator', foreground: 'D4D4D4' },
+        { token: 'comment', foreground: '7A8580', fontStyle: 'italic' },
+        { token: 'string', foreground: 'A2500F' },
+        { token: 'variable', foreground: '1F5FA8' },
+        { token: 'keyword', foreground: '17694A', fontStyle: 'bold' },
+        { token: 'number', foreground: '8A3FA0' },
+        { token: 'delimiter', foreground: '4A5650' },
+        { token: 'operator', foreground: '4A5650' },
       ],
       colors: {
-        'editor.background': '#1e1e1e',
-        'editor.foreground': '#d4d4d4',
-        'editor.lineHighlightBackground': '#2a2a2a',
+        'editor.background': '#FFFDF8',
+        'editor.foreground': '#1C2924',
+        'editor.lineHighlightBackground': '#F4F0E4',
+        'editorLineNumber.foreground': '#B4AFA0',
+        'editorLineNumber.activeForeground': '#17694A',
       },
     })
 
@@ -208,7 +210,7 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
         <button type="button" onClick={() => {
           if (window.confirm('Clear this program and its saved browser session?')) session.clearSession()
         }}>Clear saved session</button>
-        <span role="status">{session.error || 'Program saved in this tab when edited.'}</span>
+        <span role="status">{session.error || 'Saved in this tab as you type.'}</span>
       </div>
       <MonacoEditor
         height="100%"
@@ -218,9 +220,11 @@ export const Editor = forwardRef<EditorHandle, { onRun: () => void }>(function E
         onMount={handleMount}
         theme="logo-theme"
         options={{
-          fontSize: 14,
-          fontFamily: "'Fira Code', 'Cascadia Code', monospace",
+          fontSize: 15,
+          fontFamily: "ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace",
           minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          padding: { top: 10 },
           lineNumbers: 'on',
           automaticLayout: true,
           tabSize: 2,

@@ -23,7 +23,7 @@ export function HelpPanel({ onClose }: HelpPanelProps) {
     <div className="help-overlay" onClick={onClose}>
       <div className="help-panel" onClick={(e) => e.stopPropagation()}>
         <div className="help-header">
-          <h2>UCBLogo Help</h2>
+          <h2>Logo words</h2>
           <button className="help-close" onClick={onClose}>
             ×
           </button>

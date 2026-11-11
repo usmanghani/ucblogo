@@ -8,4 +8,4 @@ The animation is Logo source in `examples/rocket-launch.lgo`. Change the `HEIGHT
 
 Editor Run cooperatively executes procedures and loops, allowing the browser to repaint during WAIT. Stop, Clear, another Run, and loading an example cancel the active run. Long programs also yield periodically and retain the existing execution-step limit.
 
-The synchronous interpreter API, command-line REPL, and Pip's isolated verification runner still reject WAIT explicitly. Use the editor's Run action for animations. WAIT inside callbacks executed by synchronous higher-order primitives is also unsupported; use ordinary procedures and REPEAT loops.
+The synchronous interpreter API and the command line still reject WAIT explicitly. Use Run for animations. When Pip checks a program on the server, WAIT returns at once, so animated programs can still be checked for mistakes. WAIT inside callbacks executed by synchronous higher-order primitives is also unsupported; use ordinary procedures and REPEAT loops.
