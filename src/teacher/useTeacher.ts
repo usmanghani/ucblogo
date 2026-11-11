@@ -42,8 +42,6 @@ function saveChat(chat: SavedChat) {
   } catch { /* the chat simply will not survive a reload */ }
 }
 
-const hasDrawing = (message: EveMessage) => message.role === 'user' && message.parts.some(part => part.type === 'file')
-
 const toolCalls = (messages: readonly EveMessage[]) => messages.flatMap(message => message.parts.flatMap(part => (part.type === 'tool' ? [part] : [])))
 
 /** Explain a failure in words a student can act on. */
@@ -92,22 +90,25 @@ export function useTeacher(handlers: TeacherHandlers) {
     }
   }, [agent.messages, agent.status])
 
-  // The server keeps a sent picture but does not hand back an address for it, so remember
-  // this tab's own pictures to show them in the conversation. After a reload they show as a note.
-  const [sentDrawings, setSentDrawings] = useState<readonly string[]>([])
-  const [restoredDrawings, setRestoredDrawings] = useState(() => agent.messages.filter(hasDrawing).length)
+  // Show the student's own picture in the conversation. The server stores it but does not
+  // hand back an address, and how it echoes the attachment varies, so each picture is tied
+  // to its message by position at the moment it is sent. After a reload it shows as a note.
+  const [sentDrawings, setSentDrawings] = useState<ReadonlyArray<{ position: number; image: string }>>([])
+  const userMessages = useMemo(() => agent.messages.filter(message => message.role === 'user'), [agent.messages])
+  const userCount = useRef(0)
+  userCount.current = userMessages.length
   const drawings = useMemo(() => {
     const shown = new Map<string, string>()
-    agent.messages.filter(hasDrawing).slice(restoredDrawings).forEach((message, index) => { if (sentDrawings[index]) shown.set(message.id, sentDrawings[index]) })
+    for (const { position, image } of sentDrawings) if (userMessages[position]) shown.set(userMessages[position].id, image)
     return shown
-  }, [agent.messages, sentDrawings, restoredDrawings])
+  }, [userMessages, sentDrawings])
 
   const turnOpen = activeTurn(agent.view) !== undefined
   const working = turnOpen || agent.status === 'busy'
 
   const send = useCallback(async (text: string, drawings: readonly string[] = []) => {
     setFailure(null)
-    if (drawings.length) setSentDrawings(previous => [...previous, drawings[0]])
+    if (drawings.length) { const position = userCount.current; setSentDrawings(previous => [...previous, { position, image: drawings[0] }]) }
     try {
       await agent.send(drawings.length
         ? [{ type: 'text', text }, ...drawings.map((data, index) => ({ type: 'file' as const, data, mediaType: data.slice(5, data.indexOf(';')), filename: `drawing-${index + 1}.jpg` }))]
@@ -123,7 +124,6 @@ export function useTeacher(handlers: TeacherHandlers) {
     try { sessionStorage.removeItem(CHAT_KEY) } catch { /* nothing saved */ }
     handled.current = new Set()
     setSentDrawings([])
-    setRestoredDrawings(0)
     setFailure(null)
     agent.newSession()
   }, [agent])

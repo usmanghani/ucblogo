@@ -177,10 +177,11 @@ export function TeacherPanel({ teacher, consent, onConsent, completed, lesson, o
             <ThreadPrimitive.Messages>
               {({ message }) => <MessagePrimitive.Root className={`message message-${message.role}`}>
                 <span className="visually-hidden">{message.role === 'user' ? 'You said:' : 'Pip said:'}</span>
+                {message.role === 'user' && <SentDrawing messageId={message.id} />}
                 <MessagePrimitive.Parts>
                   {({ part }) => {
                     if (part.type === 'text') return part.text ? <MessageText text={part.text} student={message.role === 'user'} /> : null
-                    if (part.type === 'image') return <SentDrawing src={part.image} messageId={message.id} />
+                    if (part.type === 'image') return <SentDrawingNote src={part.image} messageId={message.id} />
                     if (part.type === 'tool-call') return <ToolNote key={part.toolCallId} part={part} />
                     return null
                   }}
@@ -225,12 +226,17 @@ export function TeacherPanel({ teacher, consent, onConsent, completed, lesson, o
   </aside>
 }
 
-function SentDrawing({ src, messageId }: { src: string; messageId: string }) {
+/** The picture this tab sent with a message, if any. */
+function SentDrawing({ messageId }: { messageId: string }) {
   const mine = useContext(Drawings).get(messageId)
-  const address = src || mine
-  return address
-    ? <img className="sent-drawing" src={address} alt="The drawing you sent" />
-    : <div className="sent-drawing-note">You sent a drawing</div>
+  return mine ? <img className="sent-drawing" src={mine} alt="The drawing you sent" /> : null
+}
+
+/** A stored attachment this tab no longer holds, such as after a reload. */
+function SentDrawingNote({ src, messageId }: { src: string; messageId: string }) {
+  const mine = useContext(Drawings).get(messageId)
+  if (mine) return null
+  return src ? <img className="sent-drawing" src={src} alt="The drawing you sent" /> : <div className="sent-drawing-note">You sent a drawing</div>
 }
 
 function DrawingChip({ file }: { file?: File }) {
