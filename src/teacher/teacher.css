@@ -1,0 +1,109 @@
+.teacher { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+
+.teacher-header { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.teacher-header .pip-face { width: 38px; height: 38px; flex-shrink: 0; }
+.teacher-name { min-width: 0; flex: 1; display: flex; flex-direction: column; line-height: 1.25; }
+.teacher-name strong { font-size: 16px; }
+.teacher-name small { color: var(--ink-soft); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.teacher-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.teacher-actions button { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 13px; }
+.teacher-actions button:hover:not(:disabled) { border-color: var(--leaf); }
+.teacher-actions .count { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+.pip-shell { fill: var(--leaf); }
+.pip-lines { stroke: var(--leaf-deep); stroke-width: 1.4; fill: none; opacity: 0.55; }
+.pip-head { fill: #7fb98a; }
+.pip-eye { fill: var(--ink); }
+.pip-legs { stroke: #7fb98a; stroke-width: 4; stroke-linecap: round; }
+
+.lesson-drawer { border-bottom: 1px solid var(--line); background: var(--paper); padding: 10px 12px; max-height: 46%; overflow-y: auto; flex-shrink: 0; }
+
+.thread { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.thread-viewport { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 14px 8px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+
+/* Welcome */
+.welcome { display: flex; flex-direction: column; gap: 12px; }
+.welcome h1 { margin: 4px 0 0; font-size: 26px; line-height: 1.15; letter-spacing: -0.02em; text-wrap: balance; }
+.welcome h2 { margin: 10px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.welcome p { margin: 0; color: var(--ink-soft); }
+.primary { align-self: flex-start; background: var(--leaf); color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-weight: 600; }
+.primary:hover:not(:disabled) { background: var(--leaf-deep); }
+.consent { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.consent p { color: var(--ink); font-size: 14px; }
+.suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
+.suggestion { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 13px; }
+.suggestion:hover:not(:disabled) { border-color: var(--leaf); background: var(--leaf-wash); }
+
+/* Lesson path: a numbered trail, because the order is the point */
+.lesson-path { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.lesson-step { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; background: none; border: none; border-radius: 10px; padding: 7px 8px; position: relative; }
+.lesson-step:hover:not(:disabled) { background: var(--leaf-wash); }
+.lesson-path li:not(:last-child) .lesson-step::after { content: ''; position: absolute; left: 21px; top: 36px; bottom: -8px; width: 2px; background: var(--line); }
+.lesson-number { flex: 0 0 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; background: var(--surface); border: 2px solid var(--line); color: var(--ink-soft); position: relative; z-index: 1; }
+.lesson-step.is-done .lesson-number { background: var(--leaf); border-color: var(--leaf); color: #fff; }
+.lesson-step.is-current .lesson-number { border-color: var(--sun); color: var(--ink); box-shadow: 0 0 0 3px rgba(242, 182, 58, 0.3); }
+.lesson-text { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.lesson-text small { color: var(--ink-soft); font-size: 13px; }
+
+/* Messages */
+.message { display: flex; flex-direction: column; gap: 8px; max-width: 100%; }
+.message-user { align-items: flex-end; }
+.message-user .bubble { background: var(--leaf); color: #fff; border-radius: 16px 16px 4px 16px; padding: 8px 13px; max-width: 88%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.message-assistant .bubble { overflow-wrap: anywhere; }
+.bubble p, .bubble ul, .bubble ol { margin: 0 0 8px; }
+.bubble > :last-child { margin-bottom: 0; }
+.bubble ul, .bubble ol { padding-left: 22px; }
+.bubble code { font: 0.92em var(--mono); background: var(--leaf-wash); color: var(--leaf-deep); border-radius: 5px; padding: 1px 5px; }
+.lesson-code { margin: 0 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); overflow: hidden; display: flex; flex-direction: column; }
+.lesson-code pre { margin: 0; padding: 10px 12px; overflow-x: auto; }
+.lesson-code pre code { background: none; color: var(--ink); padding: 0; font-size: 13.5px; line-height: 1.5; }
+.lesson-code button { align-self: flex-end; margin: 0 8px 8px; background: var(--surface); border: 1px solid var(--leaf); color: var(--leaf-deep); border-radius: 8px; padding: 3px 12px; font-size: 13px; font-weight: 600; }
+.lesson-code button:hover { background: var(--leaf); color: #fff; }
+
+.tool-note { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--ink-soft); background: var(--paper); border-radius: 10px; padding: 6px 10px; align-self: flex-start; max-width: 100%; }
+.tool-note small { display: block; font: 12.5px var(--mono); color: var(--clay); margin-top: 2px; overflow-wrap: anywhere; }
+.tool-mark { flex: 0 0 18px; height: 18px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; background: var(--leaf); }
+.tool-working .tool-mark { background: none; border: 2px solid var(--line); border-top-color: var(--leaf); animation: spin 0.8s linear infinite; }
+.tool-problem .tool-mark { background: var(--clay); }
+.tool-star { background: #fdf3d6; color: var(--ink); font-weight: 600; }
+.tool-star .tool-mark { background: var(--sun); color: var(--ink); }
+
+.thinking { display: flex; gap: 5px; padding: 4px 2px; }
+.thinking span { width: 7px; height: 7px; border-radius: 50%; background: var(--leaf); animation: bob 1.1s ease-in-out infinite; }
+.thinking span:nth-child(2) { animation-delay: 0.15s; }
+.thinking span:nth-child(3) { animation-delay: 0.3s; }
+.failure { background: var(--clay-wash); color: #7c2a16; border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+
+/* Composer */
+.composer-area { flex-shrink: 0; padding: 8px 12px 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.run-problem { display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; background: var(--clay-wash); border: 1px solid #ecc6b8; border-radius: 10px; padding: 7px 10px; font-size: 13px; }
+.run-problem span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run-problem em { font: normal 12.5px var(--mono); }
+.run-problem strong { flex-shrink: 0; color: var(--clay); }
+.composer { display: flex; align-items: flex-end; gap: 8px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 6px 6px 6px 12px; }
+.composer:focus-within { border-color: var(--leaf); box-shadow: 0 0 0 3px var(--leaf-wash); }
+.composer-input { flex: 1; min-width: 0; border: none; outline: none; resize: none; background: transparent; font: inherit; line-height: 1.45; padding: 5px 0; max-height: 140px; }
+.composer-button { flex-shrink: 0; background: var(--leaf); color: #fff; border: none; border-radius: 9px; padding: 7px 14px; font-weight: 600; }
+.composer-button.is-stop { background: var(--ink); }
+.fine-print { margin: 0; font-size: 11.5px; color: var(--ink-soft); text-align: center; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes bob { 0%, 60%, 100% { transform: translateY(0); opacity: 0.35; } 30% { transform: translateY(-4px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .thinking span, .tool-working .tool-mark { animation: none; }
+  .thread-viewport { scroll-behavior: auto; }
+}
+
+/* Drawings the student shows Pip */
+.composer { flex-wrap: wrap; }
+.composer-drawings { flex: 0 0 100%; display: flex; flex-wrap: wrap; gap: 6px; }
+.composer-drawings:empty { display: none; }
+.drawing-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--leaf-wash); border-radius: 10px; padding: 4px 6px 4px 4px; font-size: 13px; margin: 2px 0 4px; }
+.drawing-chip img { width: 40px; height: 40px; object-fit: cover; border-radius: 7px; background: #fff; }
+.drawing-chip button { border: none; background: none; font-size: 18px; line-height: 1; padding: 0 4px; color: var(--ink-soft); }
+.composer-attach { flex-shrink: 0; align-self: flex-end; width: 34px; height: 34px; margin-left: -6px; border: none; background: none; border-radius: 9px; display: grid; place-items: center; color: var(--ink-soft); }
+.composer-attach:hover:not(:disabled) { background: var(--leaf-wash); color: var(--leaf-deep); }
+.composer-attach svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.sent-drawing { max-width: min(220px, 70%); max-height: 220px; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+.sent-drawing-note { font-size: 13px; color: var(--ink-soft); background: var(--paper); border-radius: 10px; padding: 5px 10px; }
+.drawing-hint { font-size: 14px; }

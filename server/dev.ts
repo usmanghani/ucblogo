@@ -1,21 +1,20 @@
-import { Readable } from 'node:stream'
-import type { Plugin, Connect } from 'vite'
-import { handleAssistant } from './assistant.ts'
-export function assistantDev(key?: string): Plugin {
+import type { Connect, Plugin } from 'vite'
+import { routes } from './api.ts'
+import { serve } from './node.ts'
+
+/**
+ * Serve /api/* from `vite` and `vite preview`. When deployed, the same handlers are served by
+ * the agent service (agent/channels/account.ts).
+ */
+export function accountApi(): Plugin {
   const middleware: Connect.NextHandleFunction = (req, res, next) => {
-    if (req.url?.split('?')[0] !== '/api/assistant') { next(); return }
-    const controller = new AbortController()
-    res.on('close', () => controller.abort())
-    void (async () => {
-      const headers = new Headers()
-      for (const [name, value] of Object.entries(req.headers)) if (value) headers.set(name, Array.isArray(value) ? value.join(', ') : value)
-      const init = { method: req.method, headers, signal: controller.signal, duplex: 'half', ...(req.method !== 'GET' && req.method !== 'HEAD' ? { body: Readable.toWeb(req) } : {}) }
-      const request = new Request(`http://${req.headers.host}${req.url}`, init as RequestInit)
-      const response = await handleAssistant(request, key)
-      res.writeHead(response.status, Object.fromEntries(response.headers))
-      if (response.body) for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) { if (res.destroyed) break; res.write(chunk) }
-      res.end()
-    })().catch(() => { if (!res.headersSent) res.writeHead(500); res.end('Pip is unavailable.') })
+    const handler = routes[req.url?.split('?')[0] ?? '']
+    if (!handler) { next(); return }
+    void serve(handler, req, res)
   }
-  return { name: 'pip-server', configureServer(server) { server.middlewares.use(middleware) }, configurePreviewServer(server) { server.middlewares.use(middleware) } }
+  return {
+    name: 'logo-teacher-account-api',
+    configureServer(server) { server.middlewares.use(middleware) },
+    configurePreviewServer(server) { server.middlewares.use(middleware) },
+  }
 }

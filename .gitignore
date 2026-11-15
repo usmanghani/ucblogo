@@ -42,3 +42,8 @@ test-results/
 # Generated from the pinned monaco-editor dependency
 public/monaco/
 public/deployment.json
+
+# eve agent build and local runtime state
+.eve/
+.output/
+.workflow-data/

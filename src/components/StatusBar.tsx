@@ -24,8 +24,9 @@ export function StatusBar({ state }: StatusBarProps) {
 }
 
 function format(n: number): string {
-  if (Number.isInteger(n)) return String(n)
-  return n.toFixed(1)
+  // Round first, so float dust from turning never shows as "100.0" or "-0.0".
+  const rounded = Math.round(n * 10) / 10 + 0
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)
 }
 
 function getLogoColor(index: number): string {

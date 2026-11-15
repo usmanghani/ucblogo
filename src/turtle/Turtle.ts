@@ -55,8 +55,27 @@ export const LOGO_COLORS: Record<number, string> = {
 }
 
 type DrawingCanvas = HTMLCanvasElement | OffscreenCanvas
+
+/** A canvas that draws nothing, for running Logo where no canvas exists (the server). */
+export function createNullCanvas(width = 2000, height = 1500): DrawingCanvas {
+  const noop = () => {}
+  const context = new Proxy({} as Record<string, unknown>, {
+    get: (target, key) => (key in target ? target[key as string] : noop),
+    set: (target, key, value) => { target[key as string] = value; return true },
+  })
+  return { width, height, getContext: () => context } as unknown as DrawingCanvas
+}
+
 function newCanvas(): DrawingCanvas {
-  return typeof document === 'undefined' ? new OffscreenCanvas(1, 1) : document.createElement('canvas')
+  if (typeof document !== 'undefined') return document.createElement('canvas')
+  return typeof OffscreenCanvas === 'undefined' ? createNullCanvas(1, 1) : new OffscreenCanvas(1, 1)
+}
+
+/** What a run drew, in turtle coordinates. This is how the teacher "sees" a picture. */
+export interface DrawingSummary {
+  strokes: number
+  bounds: { left: number; right: number; bottom: number; top: number } | null
+  penColors: number[]
 }
 
 export class Turtle {
@@ -71,6 +90,9 @@ export class Turtle {
   private batchDrawing = false
   private width: number
   private height: number
+  private strokes = 0
+  private bounds: DrawingSummary['bounds'] = null
+  private inkColors = new Set<number>()
   constructor(canvas: DrawingCanvas, callbacks: TurtleCallbacks = {}) {
     this.canvas = canvas
     this.ctx = canvas.getContext('2d')! as CanvasRenderingContext2D
@@ -124,6 +146,28 @@ export class Turtle {
     return { ...this.state }
   }
 
+  /** Summarise the marks made since the screen was last cleared. */
+  getDrawingSummary(): DrawingSummary {
+    const round = (n: number) => Math.round(n * 10) / 10 + 0 // + 0 turns -0 into 0
+    const b = this.bounds
+    return {
+      strokes: this.strokes,
+      bounds: b && { left: round(b.left), right: round(b.right), bottom: round(b.bottom), top: round(b.top) },
+      penColors: [...this.inkColors].sort((a, c) => a - c),
+    }
+  }
+
+  private recordInk(points: Array<[number, number]>, margin = 0): void {
+    this.strokes++
+    this.inkColors.add(this.state.penColor)
+    const b = this.bounds ?? { left: Infinity, right: -Infinity, bottom: Infinity, top: -Infinity }
+    for (const [x, y] of points) {
+      b.left = Math.min(b.left, x - margin); b.right = Math.max(b.right, x + margin)
+      b.bottom = Math.min(b.bottom, y - margin); b.top = Math.max(b.top, y + margin)
+    }
+    this.bounds = b
+  }
+
   /** Set canvas dimensions (call on resize). */
   setSize(width: number, height: number): void {
     if (width <= 0 || height <= 0) return
@@ -155,6 +199,9 @@ export class Turtle {
 
   /** Clear the drawing to the background color (CS: turtle homes too). */
   clearScreen(): void {
+    this.strokes = 0
+    this.bounds = null
+    this.inkColors.clear()
     this.bctx.fillStyle = LOGO_COLORS[this.state.background] ?? '#ffffff'
     this.bctx.fillRect(0, 0, this.width, this.height)
     this.bctx.lineWidth = this.state.penSize
@@ -250,6 +297,7 @@ export class Turtle {
     const [newSx, newSy] = this.toScreen(x, y)
 
     if (this.state.penDown) {
+      this.recordInk([[this.state.x, this.state.y], [x, y]])
       this.bctx.beginPath()
       this.bctx.moveTo(oldSx, oldSy)
       this.bctx.lineTo(newSx, newSy)
@@ -339,6 +387,7 @@ export class Turtle {
     const startAngle = -rad - Math.PI / 2
     const arcAngle = (angle * Math.PI) / 180
     if (this.state.penDown) {
+      this.recordInk([[this.state.x, this.state.y]], Math.abs(radius))
       this.bctx.beginPath()
       this.bctx.arc(sx, sy, radius, startAngle, startAngle + arcAngle, angle < 0)
       this.bctx.stroke()
@@ -355,6 +404,7 @@ export class Turtle {
   /** Draw a filled circle of the given radius around the turtle. */
   fill(): void {
     const [sx, sy] = this.toScreen(this.state.x, this.state.y)
+    this.recordInk([[this.state.x, this.state.y]], this.state.penSize * 4)
     this.bctx.save()
     this.bctx.fillStyle = LOGO_COLORS[this.state.penColor] ?? '#000000'
     this.bctx.beginPath()
@@ -366,6 +416,7 @@ export class Turtle {
   /** Draw text at the turtle's position. */
   label(text: string): void {
     const [sx, sy] = this.toScreen(this.state.x, this.state.y)
+    this.recordInk([[this.state.x, this.state.y]])
     this.bctx.save()
     this.bctx.fillStyle = LOGO_COLORS[this.state.penColor] ?? '#000000'
     this.bctx.font = `${this.state.penSize * 12}px monospace`

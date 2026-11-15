@@ -24,19 +24,17 @@ for (const [id, title] of [['cat', 'Cat with whiskers'], ['farm', 'Farm'], ['roc
   })
 }
 
-test('cancel preserves the program; accepting from Blocks opens the text example', async ({ page }) => {
+test('declining to replace the program keeps it; accepting loads the example', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('.monaco-editor')).toBeVisible()
   const source = await page.evaluate(() => sessionStorage.getItem('ucblogo.program.session.v1'))
   page.once('dialog', dialog => dialog.dismiss())
   await page.getByRole('combobox', { name: 'Preloaded examples' }).selectOption('cat')
   expect(await page.evaluate(() => sessionStorage.getItem('ucblogo.program.session.v1'))).toBe(source)
-  await page.getByRole('button', { name: 'Blocks editor', exact: true }).click()
   page.once('dialog', dialog => dialog.accept())
   await page.getByRole('combobox', { name: 'Preloaded examples' }).selectOption('cat')
-  await expect(page.getByRole('button', { name: 'Blocks editor', exact: true })).toBeVisible()
-  await expect(page.locator('.monaco-editor')).toBeVisible()
   await expect(page.getByRole('log')).toContainText('Loaded Cat with whiskers')
+  expect(await page.evaluate(() => sessionStorage.getItem('ucblogo.program.session.v1'))).toContain('WHISKERS')
 })
 
 test('animated rocket changes frames, Stop freezes it, and the original remains available', async ({ page }) => {
