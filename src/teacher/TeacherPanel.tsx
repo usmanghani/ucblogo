@@ -84,7 +84,7 @@ function ToolNote({ part }: { part: ToolPart }) {
   let label: string
   if (part.toolName === 'write_program') label = !done ? 'Writing a program…' : problemText ? 'Pip’s program hit a problem' : 'Pip put a program in your code pane'
   else if (part.toolName === 'test_program') label = !done ? 'Checking some code…' : problemText ? 'Pip found a problem while checking' : 'Pip checked some code'
-  else if (part.toolName === 'complete_lesson') label = !done ? 'Marking the lesson complete…' : `Lesson complete: ${lessonById(result.completed)?.title ?? 'well done'}`
+  else if (part.toolName === 'complete_lesson') label = !done ? 'Marking the lesson complete…' : part.isError ? 'Pip could not mark the lesson complete' : `Lesson complete: ${lessonById(result.completed)?.title ?? 'well done'}`
   else return null
   const tone = !done ? 'working' : problemText ? 'problem' : part.toolName === 'complete_lesson' ? 'star' : 'done'
   const code = isProgram ? (part.args as { code?: unknown }).code : undefined
@@ -114,11 +114,14 @@ function ToolNote({ part }: { part: ToolPart }) {
         </>
         : <p className="tool-aside">{done ? 'This step did not finish.' : 'Still running…'}</p>)}
       {part.toolName === 'complete_lesson' && <p className="tool-aside">
-        {!done ? 'Recording your progress…' : result.next?.title ? `Next lesson: ${result.next.title}` : 'That was the last lesson. You finished the course!'}
+        {!done ? 'Recording your progress…' : part.isError ? 'This step did not finish, so your progress was not changed.' : result.next?.title ? `Next lesson: ${result.next.title}` : 'That was the last lesson. You finished the course!'}
       </p>}
     </div>
   </details>
 }
+
+// Exported for tests.
+export { ToolNote }
 
 export function LessonPath({ completed, current, onPick, disabled }: { completed: string[]; current: string | null; onPick: (lesson: Lesson) => void; disabled?: boolean }) {
   return <ol className="lesson-path" aria-label="Lessons">

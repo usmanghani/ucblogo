@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EveMessage } from 'eve/react'
 import { Markdown, parseBlocks } from '../src/teacher/Markdown'
-import { LessonPath, toThreadMessage } from '../src/teacher/TeacherPanel'
+import { LessonPath, ToolNote, toThreadMessage } from '../src/teacher/TeacherPanel'
 import { lessons } from '../src/teacher/lessons'
 import { PROGRESS_KEY, useConsent, useProgress } from '../src/teacher/progress'
 import { describeError } from '../src/teacher/useTeacher'
@@ -73,6 +73,30 @@ describe('drawings', () => {
   it('keeps a sent picture in the conversation as an image part', () => {
     const sent = { id: 'u1', role: 'user', parts: [{ type: 'text', text: 'my drawing' }, { type: 'file', mediaType: 'image/jpeg' }] } as unknown as EveMessage
     expect(toThreadMessage(sent).content).toEqual([{ type: 'text', text: 'my drawing' }, { type: 'image', image: '' }])
+  })
+})
+
+describe('tool notes', () => {
+  const note = (toolName: string, extra: object) => render(<ToolNote part={{ type: 'tool-call', toolCallId: 'c1', toolName, args: {}, argsText: '{}', ...extra } as never} />)
+  it('opens to show the program and what the run reported', () => {
+    note('write_program', { args: { code: 'x = 1' }, result: { ok: true, output: 'hi', errors: [], turtle: { x: 0, y: 40, heading: 90 }, drawing: { strokes: 2, bounds: { left: 0, right: 30, bottom: 0, top: 40 } } } })
+    expect(screen.getByText('The program Pip wrote')).toBeInTheDocument()
+    expect(screen.getByText('x = 1')).toBeInTheDocument()
+    expect(screen.getByText('Finished without errors')).toBeInTheDocument()
+    expect(screen.getByText('Drew 2 strokes, 30 wide and 40 tall')).toBeInTheDocument()
+    expect(screen.getByText('Turtle ended at (0, 40), heading 90°')).toBeInTheDocument()
+  })
+  it('names the next lesson, or the end of the course, only when the lesson was really recorded', () => {
+    const next = note('complete_lesson', { result: { completed: lessons[0].id, next: { title: lessons[1].title } } })
+    expect(screen.getByText(`Next lesson: ${lessons[1].title}`)).toBeInTheDocument()
+    next.unmount()
+    const last = note('complete_lesson', { result: { completed: lessons.at(-1)!.id, next: null } })
+    expect(screen.getByText(/You finished the course/)).toBeInTheDocument()
+    last.unmount()
+    note('complete_lesson', { result: { errors: [{ message: 'This step did not finish.' }] }, isError: true })
+    expect(screen.getByText('Pip could not mark the lesson complete')).toBeInTheDocument()
+    expect(screen.queryByText(/You finished the course/)).toBeNull()
+    expect(screen.queryByText(/Lesson complete/)).toBeNull()
   })
 })
 
