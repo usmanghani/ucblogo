@@ -51,21 +51,73 @@ const Drawings = createContext<ReadonlyMap<string, string>>(new Map())
 
 const TryIt = createContext<((code: string) => void) | undefined>(undefined)
 
+interface ToolResult {
+  ok?: boolean
+  output?: string
+  errors?: Array<{ message?: string; line?: number }>
+  turtle?: { x: number; y: number; heading: number } | null
+  drawing?: { strokes?: number; bounds?: { left: number; right: number; bottom: number; top: number } | null; colors?: string[]; penColors?: number[] }
+  completed?: string
+  next?: { title?: string } | null
+}
+
+/** What a finished program run reported, in words. This is all Pip knows about the drawing. */
+function runFacts(result: ToolResult): string[] {
+  const facts: string[] = []
+  const strokes = result.drawing?.strokes ?? 0
+  const box = result.drawing?.bounds
+  if (strokes && box) facts.push(`Drew ${strokes} ${strokes === 1 ? 'stroke' : 'strokes'}, ${Math.round(box.right - box.left)} wide and ${Math.round(box.top - box.bottom)} tall`)
+  else facts.push('Drew nothing')
+  const colors = result.drawing?.colors ?? result.drawing?.penColors?.map(color => `color ${color}`) ?? []
+  if (colors.length) facts.push(`Colors: ${colors.join(', ')}`)
+  if (result.turtle) facts.push(`Turtle ended at (${Math.round(result.turtle.x)}, ${Math.round(result.turtle.y)}), heading ${Math.round(result.turtle.heading)}°`)
+  return facts
+}
+
+/** One thing Pip did with a tool. Click it to see the code Pip ran and what came back. */
 function ToolNote({ part }: { part: ToolPart }) {
   const done = part.result !== undefined
-  const result = (part.result ?? {}) as { ok?: boolean; errors?: Array<{ message?: string; line?: number }>; completed?: string }
-  const problem = part.isError ? 'This step did not finish.' : result.errors?.[0]
-  const problemText = typeof problem === 'string' ? problem : problem ? `${problem.message ?? 'Something went wrong'}${problem.line ? ` (line ${problem.line})` : ''}` : ''
+  const result = (part.result ?? {}) as ToolResult
+  const errors = (result.errors ?? []).map(error => `${error.message ?? 'Something went wrong'}${error.line ? ` (line ${error.line})` : ''}`)
+  const problemText = part.isError ? 'This step did not finish.' : errors[0] ?? ''
+  const isProgram = part.toolName === 'write_program' || part.toolName === 'test_program'
   let label: string
   if (part.toolName === 'write_program') label = !done ? 'Writing a program…' : problemText ? 'Pip’s program hit a problem' : 'Pip put a program in your code pane'
   else if (part.toolName === 'test_program') label = !done ? 'Checking some code…' : problemText ? 'Pip found a problem while checking' : 'Pip checked some code'
   else if (part.toolName === 'complete_lesson') label = !done ? 'Marking the lesson complete…' : `Lesson complete: ${lessonById(result.completed)?.title ?? 'well done'}`
   else return null
   const tone = !done ? 'working' : problemText ? 'problem' : part.toolName === 'complete_lesson' ? 'star' : 'done'
-  return <div className={`tool-note tool-${tone}`}>
-    <span className="tool-mark" aria-hidden="true">{tone === 'star' ? '★' : tone === 'problem' ? '!' : tone === 'done' ? '✓' : ''}</span>
-    <span>{label}{problemText && <small>{problemText}</small>}</span>
-  </div>
+  const code = isProgram ? (part.args as { code?: unknown }).code : undefined
+  return <details className={`tool-note tool-${tone}`}>
+    <summary>
+      <span className="tool-mark" aria-hidden="true">{tone === 'star' ? '★' : tone === 'problem' ? '!' : tone === 'done' ? '✓' : ''}</span>
+      <span className="tool-label">{label}{problemText && <small>{problemText}</small>}</span>
+      <span className="tool-chevron" aria-hidden="true" />
+    </summary>
+    <div className="tool-details">
+      {typeof code === 'string' && <>
+        <h4>{part.toolName === 'write_program' ? 'The program Pip wrote' : 'The code Pip checked'}</h4>
+        <pre><code>{code}</code></pre>
+      </>}
+      {isProgram && (done && !part.isError
+        ? <>
+          <h4>What happened when it ran</h4>
+          <ul>
+            {errors.length ? errors.map((error, index) => <li key={index} className="tool-error">{error}</li>) : <li>Finished without errors</li>}
+            {runFacts(result).map(fact => <li key={fact}>{fact}</li>)}
+          </ul>
+          {result.output && <>
+            <h4>What it printed</h4>
+            <pre className="tool-output"><code>{result.output}</code></pre>
+          </>}
+          <p className="tool-aside">Pip cannot see the drawing. These facts are all it knows about the run.</p>
+        </>
+        : <p className="tool-aside">{done ? 'This step did not finish.' : 'Still running…'}</p>)}
+      {part.toolName === 'complete_lesson' && <p className="tool-aside">
+        {!done ? 'Recording your progress…' : result.next?.title ? `Next lesson: ${result.next.title}` : 'That was the last lesson. You finished the course!'}
+      </p>}
+    </div>
+  </details>
 }
 
 export function LessonPath({ completed, current, onPick, disabled }: { completed: string[]; current: string | null; onPick: (lesson: Lesson) => void; disabled?: boolean }) {
