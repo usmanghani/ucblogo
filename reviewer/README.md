@@ -33,8 +33,6 @@ npm run build
 
 ## Deploying
 
-Do **not** run `eve deploy` or `vercel deploy` from this folder without naming the project. The Vercel CLI links by Git repository, so it picks the teaching app's project and replaces the live site. Pin the reviewer's project instead:
+The Vercel project `ucblogo-reviewer` is connected to this repository with `reviewer/` as its root folder. A push to `main` that changes anything in `reviewer/` redeploys it to production; pushes that leave the folder alone are skipped. Other branches get a preview deployment, which GitHub does not send webhooks to.
 
-```bash
-VERCEL_ORG_ID=team_rgqnRS8yLmssCpE5wnA7X8ux VERCEL_PROJECT_ID=prj_TQzINXiUJ0blS8wZwvqwRlKQ4ExA vercel deploy --prod
-```
+Do **not** run `eve deploy` or `vercel deploy` from this folder without naming the project. The Vercel CLI links by Git repository, so it picks the teaching app's project and replaces the live site.
